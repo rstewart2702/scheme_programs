@@ -1,0 +1,123 @@
+; Exercise 1.15
+; (duple n x) ::= "a list containing n copies of x"
+; Signature:
+;   duple : (Int, Sexp) -> Listof(Sexp)
+; Usage Details:
+;   usage: (duple n 'x) == ('x 'x ... 'x)
+(define duple
+  (lambda (n x)
+    (cond
+      [ (eq? 0 n) () ]
+      [ #t (cons x (duple (- n 1) x) qq) ] ) ) )
+
+
+; Exercise 1.28
+(define merge
+  (lambda (l1 l2)
+    (cond
+      [ (null? l1) l2 ]
+      [ (null? l2) l1 ]
+      [ (<= (car l1) (car l2))
+          (cons (car l1) (merge (cdr l1) l2)) ]
+      [ #t
+          (cons (car l2) (merge l1 (cdr l2))) ] ) ) )
+
+; Exercise 1.28
+; Support procedures to help with "sort" specified by exercise 1.28:
+(define partitiontr
+  (lambda (item ilist listl listr)
+    (cond
+      [ (null? ilist) 
+          (cons listl (cons listr '())) ]
+      [ (<= item (car ilist))
+          (partitiontr item (cdr ilist) listl (cons (car ilist) listr) ) ]
+      [ (< (car ilist) item)
+          (partitiontr item (cdr ilist) (cons (car ilist) listl) listr) ] ) ) )
+
+(define partition
+  (lambda (item ilist)
+    (partitiontr item ilist '() '()) ) )
+
+;; Quicksort-style sort of an "loi," "list-of-integers":
+;; Hoare's quicksort on Lisp lists seems to have a very natural
+;; expression in Scheme, since the algorithm itself is very
+;; recursive in nature, or finds its most natural expression in
+;; those terms.
+(define qsortloi
+  (lambda (loi)
+    (cond 
+      [ (null? loi) 
+        () ]
+      [ (null? (cdr loi)) 
+        loi ]
+      [ #t 
+        (let
+            [ (two-partitions (partition (car loi) (cdr loi))) ]
+            ( ;; merge is NOT strictly necessary here, right?  Because 
+              ;; every item stored in (cadr two-partitions) exceeds every
+              ;; item stored in (car two-partitions).  This means that 
+              ;; using merge is a bit of a waste of time.
+             append
+               (qsortloi (car two-partitions) )
+               (cons (car loi) (qsortloi (cadr two-partitions) ) ) ) ) ] ) ) )
+
+(define qsortloi-m
+  (lambda (loi)
+    (cond 
+      [ (null? loi) 
+        () ]
+      [ (null? (cdr loi)) 
+        loi ]
+      [ #t 
+        (let
+            [ (two-partitions (partition (car loi) (cdr loi))) ]
+            (merge
+               (qsortloi-m (car two-partitions) )
+               (cons (car loi) (qsortloi-m (cadr two-partitions) ) ) ) ) ] ) ) )
+
+(define make-big-list
+  (lambda (ubound)
+    (letrec 
+        [ (genlist
+           (lambda (limit newlist)
+             (cond 
+               [ (= limit 0) newlist ]
+               [ #t (genlist (- limit 1) (cons (random ubound) newlist)) ] ) ) ) ]
+      (genlist ubound ()) ) ) )
+
+(define qsortloi-test 
+  (lambda (size)
+    (letrec [ (big-list (make-big-list size)) 
+           (sorted-big-list (qsortloi big-list) ) ]
+      () ) ) )
+
+
+; Sample timings of various tweaks to the qsortloi:
+;Welcome to DrRacket, version 5.1.3 [3m].
+;Language: Pretty Big [custom]; memory limit: 512 MB.
+;> (define my-big (make-big-list 500000))
+;> (time (let ((sorted (qsortloi-m my-big))) () ))
+;cpu time: 23066 real time: 54383 gc time: 7578
+;()
+;> (time (let ((sorted (qsortloi my-big))) () ))
+;cpu time: 14772 real time: 19758 gc time: 6524
+;()
+;> (time (let ((sorted (qsortloi-m my-big))) () ))
+;cpu time: 16737 real time: 21902 gc time: 7141
+;()
+;> (time (let ((sorted (qsortloi-m my-big))) () ))
+;cpu time: 25537 real time: 52762 gc time: 9564
+;()
+;> (time (let ((sorted (qsortloi my-big))) () ))
+;cpu time: 9949 real time: 13284 gc time: 1472
+;()
+; 
+; So, why aren't languages like Scheme used for production, business software?
+; Search me.
+; The objections are probably remarks like, "It's too weird," "It's not
+; understood by enough of the programmer population," etc.
+;
+; The big problem is the misconception that if you assemble a big enough
+; team, then they can do anything so long as they follow a structured
+; software development process.  Languages like Scheme don't fit into that
+; screwed-up world.
