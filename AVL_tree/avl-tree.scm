@@ -20,7 +20,7 @@
   (lambda (ts)
     (cond
      ((null? ts) -1)  ;; two alternatives:  an empty tree either has height 0 or -1...
-                      ;; the choice may affect how "full" the resulting tree shall be
+                      ;; the choice affects how "full" the resulting tree shall be.
      (else (cadr (trec ts)))) ) )
 
 ;
@@ -87,6 +87,29 @@
     )
   )
 
+;; N.B. There are lots of places in the following code in which the
+;; difference between heights-of-subtrees is very important.
+;; As I was working these functions out, it turns out that the
+;; calculation of the differences between tree heights shows up
+;; everywhere.  For example, in the tree-rotation functions l-rotate
+;; and r-rotate, this is codified in the conditional expressions
+;; which calculate the height of a new subtree by checking to see
+;; whether or not both of the proposed new children of this new
+;; subtree are empty, in which case the height of the new subtree
+;; shall be 0, and otherwise, the usual calculation,
+;;   (+ 1 (max height-of-left height-of-right))
+;; is performed, where "height-of-left" and "height-of-right"
+;; have already been calculated.
+;;
+;; After writing the initial version of the code, I have come to
+;; understand that when one considers the height of an empty
+;; tree (a tree ts for which ((lambda (x) (null? x)) ts) returns #t)
+;; to be -1, then the height-difference calculations "work out
+;; properly," and we don't need the crufty conditional expression
+;; which is all over the place, in slightly different forms, etc.
+;; It's yucky, repetitious code which should be eliminated, etc.
+;; 
+
 ;; If we're to l-rotate a binary tree, then it must already possess two
 ;; children, correct?
 (define l-rotate
@@ -107,15 +130,13 @@
            ;;
            ;; Calculation of new subtrees:
            ;;
-           (new-height
-            (cond
-             ((and (null? lc) (null? lc-of-rc)) 0 )
-             (else (+ 1 (max lc-height lc-of-rc-height))) ) )
            ;; new left-hand child, new-lc, is:
            (new-lc 
             (mktree
              ;; root of new-lc is the key from the existing tree...
-             (make-trec (tkey ts) new-height)
+             (make-trec
+              (tkey ts)
+              (+ 1 (max lc-height lc-of-rc-height)) )
              ;; and its left subtree is the lc (left-hand child) of original tree...
              lc
              ;; and its right subtree is the lc-of-rc
@@ -129,17 +150,9 @@
         (mktree
          (make-trec
           (tkey rc)
-          (cond
-           ((and (null? new-lc) (null? new-rc)) 0)
-           (else (+ 1 (max (theight new-lc) (theight new-rc))) )) )
+          (+ 1 (max (theight new-lc) (theight new-rc))) )
           new-lc
-          new-rc
-          )
-         )
-        )
-      )
-     )
-    )
+          new-rc ) ) ) ) ) )
 
 (define r-rotate
   (lambda (ts)
@@ -162,15 +175,13 @@
            (new-lc
             lc-of-lc)
            ;;
-           (new-height
-            (cond
-             ((and (null? rc) (null? rc-of-lc)) 0 )
-             (else (+ 1 (max rc-height rc-of-lc-height)) ) ) )
            ;; new right-hand child, new-rc, is:
            (new-rc
             (mktree
              ;; root of new-rc is the key from the existing tree...
-             (make-trec (tkey ts) new-height)
+             (make-trec
+              (tkey ts)
+              (+ 1 (max rc-height rc-of-lc-height)) )
              ;; and the left-subtree is the right-hand child of the left subtree, lc...
              rc-of-lc
              ;; and the right-subtree is the right-hand child of existing tree
@@ -181,17 +192,9 @@
         (mktree
          (make-trec
           (tkey lc)
-          (cond
-           ((and (null? new-lc) (null? new-rc)) 0)
-           (else (+ 1 (max (theight new-lc) (theight new-rc)))) ) )
+          (+ 1 (max (theight new-lc) (theight new-rc)) ) )
          new-lc
-         new-rc
-         )
-        )
-      )
-     )
-    )
-  )
+         new-rc ) ) ) ) ) )
 
 
 ;; This is the insert-with-balancing into a height-balanced binary tree:
@@ -228,9 +231,7 @@
                      (mktree
                       (make-trec
                        (tkey ts)
-                       (cond
-                        ((and (null? lc) (null? rt-new)) 0 )
-                        (else (+ 1 (max (theight lc) (theight rt-new))) ) ) )
+                       (+ 1 (max (theight lc) (theight rt-new))) )
                       lc
                       rt-new ) ) )
                    ;;
@@ -242,9 +243,7 @@
                        (mktree
                         (make-trec
                          (tkey ts)
-                         (cond
-                          ((and (null? lc) (null? new-rc)) 0)
-                          (else (+ 1 (max (theight lc) (theight new-rc)) ) ) ) )
+                         (+ 1 (max (theight lc) (theight new-rc)) ) )
                         lc
                         new-rc ) ) ) ) ) )
                  (else
@@ -252,9 +251,7 @@
                   (mktree
                    (make-trec
                     (tkey ts)
-                    (cond
-                     ((and (null? lc) (null? rt-new)) 0 )
-                     (else (+ 1 (max (theight lc) (theight rt-new)) ) ) ) )
+                    (+ 1 (max (theight lc) (theight rt-new)) ) )
                    lc
                    rt-new) ) ) ) )
              ((kcomp newtree ts)
@@ -263,13 +260,11 @@
                  ((> (abs (- (theight lt-new) (theight rc)) ) 1)
                   (cond
                    ((kcomp newtree lt-new)
-                    (r-rotate
+                     (r-rotate
                      (mktree
                       (make-trec
                        (tkey ts)
-                       (cond
-                        ((and (null? lt-new) (null? rc)) 0 )
-                        (else (+ 1 (max (theight lt-new) (theight rc)) ) ) ) )
+                       (+ 1 (max (theight lt-new) (theight rc)) ) )
                       lt-new
                       rc ) ) )
                    ((kcomp lt-new newtree)
@@ -279,18 +274,14 @@
                        (mktree
                         (make-trec
                          (tkey ts)
-                         (cond
-                          ((and (null? new-lc) (null? rc)) 0 )
-                          (else (+ 1 (max (theight new-lc) (theight rc)) ) ) ) )
+                         (+ 1 (max (theight new-lc) (theight rc)) ) )
                         new-lc
                         rc ) ) ) ) ) )
                  (else
                   (mktree
                    (make-trec
                     (tkey ts)
-                    (cond
-                     ((and (null? lt-new) (null? rc)) 0)
-                     (else (+ 1 (max (theight lt-new) (theight rc)) ) ) ) )
+                    (+ 1 (max (theight lt-new) (theight rc)) ) )
                    lt-new
                    rc) ) ) ) ) ) ) ) ) ) ) )
 
@@ -347,3 +338,203 @@
 ;; simpler and cleaner, helps provide the essentials of the inductive
 ;; reasoning, etc.
 
+;; We need a helper function which traverses a tree to find the
+;; smallest key in it, and then deletes it.  This would seem to be
+;; a matter of taking every leftward link possible until you run out,
+;; and then
+
+(define find-min
+  (lambda (ts)
+    (cond
+     ((null? (lchild ts)) (tkey ts))
+     (else (find-min (lchild ts)) ) ) ) )
+
+;; This is intended to calculate the tree with the smallest key
+;; removed:
+;;
+;; We must separate concerns:  This should *only* "recurse" down
+;; to the minimal node, and then get rid of it.  And after that
+;; happens, the returned tree should be rebalanced, right, and the
+;; rebalancing operations must propagate all the way back up to
+;; the root...
+;;
+;; A remove-min is the result of recalculating all of the left-most
+;; subtrees, isn't it?
+(define remove-min
+  (lambda (ts)
+      (cond
+       ((null? (lchild ts))
+        ;; This is the "base-case.":
+        ;; The left subtree is empty, and therefore this is the node to be excised.
+        ;; This subtree must be replaced by its sibling from the right-hand
+        ;; side:
+        (rchild ts) )
+       (else
+         ;; This is the "recursive-case":
+         ;; We must re-derive the resulting tree, rooted at ts, and
+         ;; derived the properly balanced version, at that.
+         (letrec
+             (;; We need the new right-hand subtree?
+              ;; We need the new left-hand subtree (obtained by the recursive
+              ;; call to remove-min, yes?)
+              ;; We may need to do an l-rotate on the right-hand subtree, if
+              ;; its left-child is "too tall," i.e., the right-hand subtree
+              ;; is left-heavy.
+              (new-lchild (remove-min (lchild ts)))
+              (rc-height (theight (rchild ts)) ) )
+           (cond
+            ((> (abs (- ((theight new-lchild) (rc-height)))) 1)
+             ;; If the two subtrees' heights differ by more than 1,
+             ;; then some rebalancing of the search tree is necessary.
+             (letrec
+                 ((rc (rchild ts))
+                  (lc-of-rc (lchild rc))
+                  (rc-of-rc (rchild rc))
+                  (lc-of-rc-height (theight lc-of-rc))
+                  (rc-of-rc-height (theight rc-of-rc)) )
+             (cond
+              ((> (lc-of-rc-height) (rc-of-rc-height))
+               ;; If the right-hand side of the present subtree is
+               ;; "left-heavy," then it should be r-rotate'd so that
+               ;; the final l-rotate'd tree will come out at the
+               ;; correct height.
+               (let
+                   ((new-rc (r-rotate rc)) )
+                 (l-rotate
+                  (mktree
+                   (make-trec
+                    (tkey ts)
+                    (+ 1 (max (theight new-lchild) (theight new-rc)) ) )
+                   new-lchild
+                   new-rc ) ) ) )
+              (else
+               ;; The right-hand side of the present subtree is not
+               ;; "left-heavy" so the rebalanced tree is simply the
+               ;; l-rotate of the present subtree.
+               (l-rotate
+                (mktree
+                 (make-trec
+                  (tkey ts)
+                  (+ 1 (max (theight new-lchild) (theight rc))) )
+                 new-lchild
+                 rc) ) ) ) ) )
+            (else
+             (mktree
+              (make-trec
+               (tkey ts)
+               (+ 1 (max (theight new-lchild) (theight rc) ) ) )
+              new-lchild
+              rc) ) ) ) ) ) ) )
+
+(define rebalance
+  (lambda (ts)
+     (letrec
+         ((lc        (lchild ts))
+          (rc        (rchild ts))
+          (lc-height (theight lc) )
+          (rc-height (theight rc) ) )
+       (cond
+        ((> (abs (- lc-height rc-height)) 1 )
+         (cond
+          ((< lc-height rc-height)
+           (let
+               ((lc-of-rc (lchild (rchild ts)))
+                (rc-of-rc (rchild (rchild ts))) )
+             (cond
+              ((> (theight lc-of-rc) (theight rc-of-rc))
+               (let
+                   ((new-rc (r-rotate rc)) )
+                 (l-rotate
+                  (mktree
+                   (make-trec
+                    (tkey ts)
+                    (+ 1 (max lc-height (theight new-rc))))
+                   lc
+                   new-rc) ) ) )
+              ((<= (theight lc-of-rc) (theight rc-of-rc))
+               (l-rotate ts) ) ) ) )
+          ((> lc-height rc-height)
+           (let
+               ((lc-of-lc (lchild (lchild ts)))
+                (rc-of-lc (rchild (lchild ts))) )
+             (cond
+              ((> (theight rc-of-lc) (theight lc-of-lc))
+               (let
+                   ((new-lc (l-rotate lc)) )
+                 (r-rotate
+                  (mktree
+                   (make-trec
+                    (tkey ts)
+                    (+ 1 (max (theight new-lc) rc-height)) )
+                   new-lc
+                   rc ) ) ) )
+              ((<= (theight rc-of-lc) (theight lc-of-lc))
+               (r-rotate ts) ) ) ) ) ) )
+        (else ts) ) ) ) )
+
+;; So, a deletion function must:
+;; calculate the root of the subtree which contains the key to
+;; be deleted, and:
+;; + Calculate the successor key (via a find-min calculation)
+;; + Calculate a new right-hand subtree with the successor's key
+;;   removed (via remove-min call)
+;; + calculate a new, balanced subtree by:
+;;   making the calculated successor the new subtree root,
+;;   making the existing left-subtree as the left-subtree,
+;;   making the right-hand-subtree calculated above the right-subtree
+;;
+;; this new subtree shall have to be balanced...
+
+;; I now realize that the above will have to be generalized into a
+;; "remove-this-key" function, I think.  Then, the delete-an-item
+;; function shall have to:
+;; + find the key-to-be-removed,
+;; + find the successor of the key-to-be-removed (via find-min)
+;; + calculate the new right-hand subtree, with the
+;;   successor removed (via the "remove-this-key" function)
+;; + calculate the new tree:
+;;   with the successor key as the root,
+;;   the present left tree as the left subtree,
+;;   the calculated new right-hand subtree as the right subtree
+;;   This new tree may need an r-rotate of the right-hand subtree,
+;;   and may need to be l-rotated itself?
+
+(define remove-from-tree
+  (lambda (ts k)
+    (let
+        ( (kt (mknode k)) )
+      (cond
+       ((null? (lchild ts))
+        (rchild ts) )
+       ((kcomp kt ts)
+        (let
+            ((new-lc (remove-from-tree (lchild ts) k)))
+          (rebalance
+           (mktree
+            (make-trec
+             (tkey ts)
+             (+ 1 (max (theight new-lc) (theight (rchild ts)))) )
+            new-lc
+            (rchild ts) ) ) ) )
+       ((kcomp ts kt)
+        (let
+            ((new-rc (remove-from-tree (rchild ts) k)))
+          (rebalance
+           (mktree
+            (make-trec
+             (tkey ts)
+             (+ 1 (max (theight (lchild ts)) (theight new-rc))) )
+            (lchild ts)
+            new-rc ) ) ) )
+       (else
+        ;; The key in question, k, is in the root of the tree ts.
+        (let
+            ((new-key (find-min ts))
+             (new-rc (remove-from-tree (rchild ts) k)) )
+          (rebalance
+           (mktree
+            (make-trec
+             new-key
+             (min (+ 1 (max (theight (lchild ts)) (theight new-rc))) ) )
+            (lchild ts)
+            new-rc) ) ) ) ) ) ) )
