@@ -504,8 +504,8 @@
     (let
         ( (kt (mknode k)) )
       (cond
-       ((null? (lchild ts))
-        (rchild ts) )
+       ;; ((null? (lchild ts))
+       ;;  (rchild ts) )
        ((kcomp kt ts)
         (let
             ((new-lc (remove-from-tree (lchild ts) k)))
@@ -528,13 +528,20 @@
             new-rc ) ) ) )
        (else
         ;; The key in question, k, is in the root of the tree ts.
-        (let
-            ((new-key (find-min ts))
-             (new-rc (remove-from-tree (rchild ts) k)) )
-          (rebalance
-           (mktree
-            (make-trec
-             new-key
-             (min (+ 1 (max (theight (lchild ts)) (theight new-rc))) ) )
-            (lchild ts)
-            new-rc) ) ) ) ) ) ) )
+        (cond
+         ((and
+           (null? (rchild ts))
+           (null? (rchild ts)) )
+          '() )
+         (else
+          (letrec
+              ((new-key (find-min (rchild ts)))
+               (new-rc (remove-from-tree (rchild ts) new-key)) )
+            (rebalance
+             (mktree
+              (make-trec
+               new-key
+               (min (+ 1 (max (theight (lchild ts)) (theight new-rc))) ) )
+              (lchild ts)
+              new-rc) ) ) ) ) ) ) ) ) )
+
