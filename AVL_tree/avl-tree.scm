@@ -472,6 +472,43 @@
                (r-rotate ts) ) ) ) ) ) )
         (else ts) ) ) ) )
 
+;; The following is a rewritten version of the b-insert
+;; function which usese the above rebalance function and eliminates
+;; lots of redundant definitions.
+
+(define b-insert2
+  (lambda (ts itm)
+    (let ((newtree (mknode itm)) )
+      (cond 
+         ((null? ts)
+          ;; If we're inserting into an "empty tree" then the result is
+          ;; merely the result of creating a new tree/node from the itm.
+          newtree)
+         (else
+          (let
+              ( (lc (lchild ts))
+                (rc (rchild ts)) )
+            (cond
+             ((kcomp ts newtree)
+              (let ( (rt-new (b-insert2 rc itm)) )
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ts)
+                   (+ 1 (max (theight lc) (theight rt-new)) ) )
+                   lc
+                   rt-new) ) ) )
+             ((kcomp newtree ts)
+              (let ( (lt-new (b-insert2 lc itm)) )
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ts)
+                   (+ 1 (max (theight lt-new) (theight rc)) ) )
+                  lt-new
+                  rc) ) ) ) ) ) ) ) ) ) )
+
+
 ;; So, a deletion function must:
 ;; calculate the root of the subtree which contains the key to
 ;; be deleted, and:
@@ -488,7 +525,7 @@
 ;; I now realize that the above will have to be generalized into a
 ;; "remove-this-key" function, I think.  Then, the delete-an-item
 ;; function shall have to:
-;; + find the key-to-be-removed,
+;; + find the key-to-be-removed;
 ;; + find the successor of the key-to-be-removed (via find-min)
 ;; + calculate the new right-hand subtree, with the
 ;;   successor removed (via the "remove-this-key" function)
@@ -498,6 +535,12 @@
 ;;   the calculated new right-hand subtree as the right subtree
 ;;   This new tree may need an r-rotate of the right-hand subtree,
 ;;   and may need to be l-rotated itself?
+;;
+;;   Yes, and this new tree is calculated by the rebalance function,
+;;   and generalizing that functionality out into its own function
+;;   made it possible to derive a very concise version of the
+;;   function to calculate the result of inserting into a balanced
+;;   search tree.
 
 (define remove-from-tree
   (lambda (ts k)
@@ -545,3 +588,10 @@
               (lchild ts)
               new-rc) ) ) ) ) ) ) ) ) )
 
+;; This all needs to be factored further, and the specifications could be
+;; further re-cast in such a manner that let or letrec expressions
+;; should be utilized more heavily.  The reason this would be desirable
+;; is because it may yield more efficient code (by reducing the redundant
+;; calculation of expressions) and code which resembles mathematical
+;; definitions, much like code in a Haskell program (which just goes to
+;; show the common heritage anyhow, right...)
