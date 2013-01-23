@@ -312,7 +312,7 @@
             (cond
              ((equal? key limit) tree)
              (else
-              (bt-test-tr (b-insert tree key) (+ 1 key) limit) ) ) ) ) )
+              (bt-test-tr (b-insert2 tree key) (+ 1 key) limit) ) ) ) ) )
       (bt-test-tr ts 1 n) ) ) )
 
 (define bt-test-d
@@ -324,9 +324,22 @@
             (cond
              ((equal? key limit) tree)
              (else
-              (bt-test-tr (b-insert tree key) (- key 1) limit) ) ) ) )
+              (bt-test-tr (b-insert2 tree key) (- key 1) limit) ) ) ) )
          )
       (bt-test-tr ts (- n 2) 0) ) ) )
+
+(define bt-test-range
+  (lambda (x y)
+    (letrec
+        ((ts (mknode x) )
+         (bt-test-range-tr
+          (lambda (tree x y)
+            (cond
+             ((equal? x y) (b-insert2 tree x))
+             (else
+              (bt-test-range-tr (b-insert2 tree x) (+ x 1) y) ) ) ) ) )
+      (bt-test-range-tr ts (+ x 1) y) ) ) )
+         
 
 
 ;; Probably need a "primitive function" which finds the successor to a 
@@ -349,82 +362,6 @@
      ((null? (lchild ts)) (tkey ts))
      (else (find-min (lchild ts)) ) ) ) )
 
-;; This is intended to calculate the tree with the smallest key
-;; removed:
-;;
-;; We must separate concerns:  This should *only* "recurse" down
-;; to the minimal node, and then get rid of it.  And after that
-;; happens, the returned tree should be rebalanced, right, and the
-;; rebalancing operations must propagate all the way back up to
-;; the root...
-;;
-;; A remove-min is the result of recalculating all of the left-most
-;; subtrees, isn't it?
-(define remove-min
-  (lambda (ts)
-      (cond
-       ((null? (lchild ts))
-        ;; This is the "base-case.":
-        ;; The left subtree is empty, and therefore this is the node to be excised.
-        ;; This subtree must be replaced by its sibling from the right-hand
-        ;; side:
-        (rchild ts) )
-       (else
-         ;; This is the "recursive-case":
-         ;; We must re-derive the resulting tree, rooted at ts, and
-         ;; derived the properly balanced version, at that.
-         (letrec
-             (;; We need the new right-hand subtree?
-              ;; We need the new left-hand subtree (obtained by the recursive
-              ;; call to remove-min, yes?)
-              ;; We may need to do an l-rotate on the right-hand subtree, if
-              ;; its left-child is "too tall," i.e., the right-hand subtree
-              ;; is left-heavy.
-              (new-lchild (remove-min (lchild ts)))
-              (rc-height (theight (rchild ts)) ) )
-           (cond
-            ((> (abs (- ((theight new-lchild) (rc-height)))) 1)
-             ;; If the two subtrees' heights differ by more than 1,
-             ;; then some rebalancing of the search tree is necessary.
-             (letrec
-                 ((rc (rchild ts))
-                  (lc-of-rc (lchild rc))
-                  (rc-of-rc (rchild rc))
-                  (lc-of-rc-height (theight lc-of-rc))
-                  (rc-of-rc-height (theight rc-of-rc)) )
-             (cond
-              ((> (lc-of-rc-height) (rc-of-rc-height))
-               ;; If the right-hand side of the present subtree is
-               ;; "left-heavy," then it should be r-rotate'd so that
-               ;; the final l-rotate'd tree will come out at the
-               ;; correct height.
-               (let
-                   ((new-rc (r-rotate rc)) )
-                 (l-rotate
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max (theight new-lchild) (theight new-rc)) ) )
-                   new-lchild
-                   new-rc ) ) ) )
-              (else
-               ;; The right-hand side of the present subtree is not
-               ;; "left-heavy" so the rebalanced tree is simply the
-               ;; l-rotate of the present subtree.
-               (l-rotate
-                (mktree
-                 (make-trec
-                  (tkey ts)
-                  (+ 1 (max (theight new-lchild) (theight rc))) )
-                 new-lchild
-                 rc) ) ) ) ) )
-            (else
-             (mktree
-              (make-trec
-               (tkey ts)
-               (+ 1 (max (theight new-lchild) (theight rc) ) ) )
-              new-lchild
-              rc) ) ) ) ) ) ) )
 
 (define rebalance
   (lambda (ts)
@@ -584,7 +521,7 @@
              (mktree
               (make-trec
                new-key
-               (min (+ 1 (max (theight (lchild ts)) (theight new-rc))) ) )
+               (+ 1 (max (theight (lchild ts)) (theight new-rc))) )
               (lchild ts)
               new-rc) ) ) ) ) ) ) ) ) )
 
@@ -595,3 +532,201 @@
 ;; calculation of expressions) and code which resembles mathematical
 ;; definitions, much like code in a Haskell program (which just goes to
 ;; show the common heritage anyhow, right...)
+
+;; This concatenation operator will only work properly
+;; when (>= (theight tl) (theight tr)).
+;; But it is cheap and concise!
+;;
+;; It should not take much to generalize this into a
+;; version which allows the shorter tree to be the left-hand
+;; tree, and in which we "splice together" the shorter left-hand
+;; tree and a "left-most" subtree of the right-hand, taller tree
+;; and then splice that into the taller right-hand tree, with
+;; rebalancing cascading up to the root.
+;;
+;; Frustrating, trying to describe this stuff in such
+;; imperative, figurative terms...
+;; 
+(define concat
+  (lambda (tl tr)
+    (cond
+     ((equal? (theight tl) (theight tr))
+      (letrec ((new-key (find-min tr))
+               (new-tr (remove-from-tree tr new-key)) )
+        (rebalance
+         (mktree
+          (make-trec
+           new-key
+           (+ 1 (max (theight tl) (theight new-tr) ) ))
+          tl
+          new-tr) ) ) )
+     (else
+      (let ( (new-rc (concat (rchild tl) tr) ) )
+        (rebalance
+         (mktree
+          (make-trec
+           (tkey tl)
+           (+ 1 (max (theight (lchild tl)) (theight new-rc))) )
+          (lchild tl)
+          new-rc ) ) ) ) ) ) )
+
+;; This is a range-search operation:
+;; it may not be particularly efficient,
+;; partly because of the use of append, and
+;; partly because of the intrinsic nature of the
+;; height-balanced tree structure.
+;;
+;; I don't yet have a good feel for whether or not
+;; this can decay into something akin to a linear
+;; list scan, but a moment's reflection seems to
+;; imply that it's possible that the well-ordering
+;; of the tree means that big chunks of the key-space
+;; can be eliminated during the search for items which
+;; fall into the range specified by x and y.
+(define list-range
+  (lambda (t x y)
+    (cond
+     ((null? t) '())
+     (else
+      (append
+       (cond
+        ((and (not (null? (lchild t)))
+              (or (<= x (tkey (lchild t)))
+                  (<= y (tkey (lchild t))) ) )
+         (list-range (lchild t) x y) )
+        (else '()) )
+       (cond
+        ((and (<= x (tkey t)) (<= (tkey t) y))
+         (cons (tkey t) '()) )
+        (else '()) )
+       (cond
+        ((and (not (null? (rchild t)))
+              (or  (<= x (tkey (rchild t)))
+                   (<= y (tkey (rchild t)))) )
+         (list-range (rchild t) x y) )
+        (else '()) ) ) ) ) ) )
+
+;; The simple operations:
+(define b-find
+  (lambda (ts x)
+    (cond
+     ((null? ts) '())
+     ((kcomp ts (mknode x)) (b-find (rchild ts) x))
+     ((kcomp (mknode x) ts) (b-find (lchild ts) x))
+     (else (tkey ts)) ) ) )
+
+;; SOME FUNCTIONS USEFUL FOR BUILDING "REGULAR" LISTS IN ORDER
+;; TO DO COMPARISON TESTING.
+;; These make it possible to perform rudimentary timing comparisons
+;; so that we can demonstrate the lower costs of balanced tree
+;; searching.
+
+(define list-find
+  (lambda (lst x)
+    (cond
+     ((null? lst) '())
+     ((equal? x (car lst)) x)
+     (else (list-find (cdr lst) x)) ) ) )
+
+(define list-gen
+  (lambda (n)
+    (letrec
+        ((list-gen-tr
+          (lambda (gen-lst ni)
+            (cond
+             ((equal? ni 0) (cons ni gen-lst))
+             (else (list-gen-tr (cons ni gen-lst) (- ni 1)) ) ) ) ) )
+      (list-gen-tr (cons (- n 1) '()) (- n 2)) ) ) )
+
+;; The huge differences start to show up once the size of the set
+;; gets up to 100000, so it seems.  But those are just ad hoc tests,
+;; done off the cuff, using racket's time function...
+
+;; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+;; OLD code, of historical interest, but must be ultimately discarded.
+
+;; remove-min became the foundation of the ultimate, more generalized
+;; remove-from-tree function.  This was due to realizing that deletion
+;; from the balanced tree structure could be defined in terms of
+;; replacement of a key with its successor, which in turn must be removed
+;; from its own subtree.  Since successors are always leaf nodes, or
+;; nearly leaf nodes, this should help us argue for termination of the
+;; tree traversal defined by the remove-from-tree function, right?
+
+;; This is intended to calculate the tree with the smallest key
+;; removed:
+;;
+;; We must separate concerns:  This should *only* "recurse" down
+;; to the minimal node, and then get rid of it.  And after that
+;; happens, the returned tree should be rebalanced, right, and the
+;; rebalancing operations must propagate all the way back up to
+;; the root...
+;;
+;; A remove-min is the result of recalculating all of the left-most
+;; subtrees, isn't it?
+(define remove-min
+  (lambda (ts)
+      (cond
+       ((null? (lchild ts))
+        ;; This is the "base-case.":
+        ;; The left subtree is empty, and therefore this is the node to be excised.
+        ;; This subtree must be replaced by its sibling from the right-hand
+        ;; side:
+        (rchild ts) )
+       (else
+         ;; This is the "recursive-case":
+         ;; We must re-derive the resulting tree, rooted at ts, and
+         ;; derived the properly balanced version, at that.
+         (letrec
+             (;; We need the new right-hand subtree?
+              ;; We need the new left-hand subtree (obtained by the recursive
+              ;; call to remove-min, yes?)
+              ;; We may need to do an l-rotate on the right-hand subtree, if
+              ;; its left-child is "too tall," i.e., the right-hand subtree
+              ;; is left-heavy.
+              (new-lchild (remove-min (lchild ts)))
+              (rc-height (theight (rchild ts)) ) )
+           (cond
+            ((> (abs (- ((theight new-lchild) (rc-height)))) 1)
+             ;; If the two subtrees' heights differ by more than 1,
+             ;; then some rebalancing of the search tree is necessary.
+             (letrec
+                 ((rc (rchild ts))
+                  (lc-of-rc (lchild rc))
+                  (rc-of-rc (rchild rc))
+                  (lc-of-rc-height (theight lc-of-rc))
+                  (rc-of-rc-height (theight rc-of-rc)) )
+             (cond
+              ((> (lc-of-rc-height) (rc-of-rc-height))
+               ;; If the right-hand side of the present subtree is
+               ;; "left-heavy," then it should be r-rotate'd so that
+               ;; the final l-rotate'd tree will come out at the
+               ;; correct height.
+               (let
+                   ((new-rc (r-rotate rc)) )
+                 (l-rotate
+                  (mktree
+                   (make-trec
+                    (tkey ts)
+                    (+ 1 (max (theight new-lchild) (theight new-rc)) ) )
+                   new-lchild
+                   new-rc ) ) ) )
+              (else
+               ;; The right-hand side of the present subtree is not
+               ;; "left-heavy" so the rebalanced tree is simply the
+               ;; l-rotate of the present subtree.
+               (l-rotate
+                (mktree
+                 (make-trec
+                  (tkey ts)
+                  (+ 1 (max (theight new-lchild) (theight rc))) )
+                 new-lchild
+                 rc) ) ) ) ) )
+            (else
+             (mktree
+              (make-trec
+               (tkey ts)
+               (+ 1 (max (theight new-lchild) (theight rc) ) ) )
+              new-lchild
+              rc) ) ) ) ) ) ) )
+
