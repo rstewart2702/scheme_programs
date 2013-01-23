@@ -196,95 +196,6 @@
          new-lc
          new-rc ) ) ) ) ) )
 
-
-;; This is the insert-with-balancing into a height-balanced binary tree:
-;; It's puzzling to me that inserting a bunch of keys in sequential order
-;; results in a tree with lots of single-child nodes down at the leaf
-;; level:  so many of the leaves don't have siblings!  What's up with that?
-;; I think it may be a consequence of the ordering of the keys, and the fact
-;; that it's not like b*tree, in which there's a distinction between the
-;; data-nodes and internal nodes.  So, is's much less of an approximation
-;; of a complete binary tree than I thought...
-
-(define b-insert
-  (lambda (ts itm)
-    (let ((newtree (mknode itm)) )
-      (cond 
-         ((null? ts)
-          ;; If we're inserting into an "empty tree" then the result is
-          ;; merely the result of creating a new tree/node from the itm.
-          newtree)
-         (else
-          (let
-              ( (lc (lchild ts))
-                (rc (rchild ts)) )
-            (cond
-             ((kcomp ts newtree)
-              (let ( (rt-new (b-insert rc itm)) )
-                (cond
-                 ((> (abs (- (theight rt-new) (theight lc)) ) 1)
-                  ;; If one subtree's too much taller than the other, then we must adjust the resulting
-                  ;; search tree:
-                  (cond
-                   ((kcomp rt-new newtree) ;; new key is greater than root of new, right-hand sub-tree...
-                    (l-rotate
-                     (mktree
-                      (make-trec
-                       (tkey ts)
-                       (+ 1 (max (theight lc) (theight rt-new))) )
-                      lc
-                      rt-new ) ) )
-                   ;;
-                   ((kcomp newtree rt-new)
-                    (let
-                        ( (new-rc (r-rotate rt-new)) ) ;; The r-rotate'd new rhs sub-tree is is required...
-                      ;; to derive the l-rotate'd final result.
-                      (l-rotate
-                       (mktree
-                        (make-trec
-                         (tkey ts)
-                         (+ 1 (max (theight lc) (theight new-rc)) ) )
-                        lc
-                        new-rc ) ) ) ) ) )
-                 (else
-                  ;; no adjustments were needed, just return the kind of tree we always would have:
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max (theight lc) (theight rt-new)) ) )
-                   lc
-                   rt-new) ) ) ) )
-             ((kcomp newtree ts)
-              (let ( (lt-new (b-insert lc itm)) )
-                (cond
-                 ((> (abs (- (theight lt-new) (theight rc)) ) 1)
-                  (cond
-                   ((kcomp newtree lt-new)
-                     (r-rotate
-                     (mktree
-                      (make-trec
-                       (tkey ts)
-                       (+ 1 (max (theight lt-new) (theight rc)) ) )
-                      lt-new
-                      rc ) ) )
-                   ((kcomp lt-new newtree)
-                    (let
-                        ( (new-lc (l-rotate lt-new)) )
-                      (r-rotate
-                       (mktree
-                        (make-trec
-                         (tkey ts)
-                         (+ 1 (max (theight new-lc) (theight rc)) ) )
-                        new-lc
-                        rc ) ) ) ) ) )
-                 (else
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max (theight lt-new) (theight rc)) ) )
-                   lt-new
-                   rc) ) ) ) ) ) ) ) ) ) ) )
-
 (define b-inorder
   (lambda (ts)
     ;; (reverse
@@ -408,6 +319,22 @@
               ((<= (theight rc-of-lc) (theight lc-of-lc))
                (r-rotate ts) ) ) ) ) ) )
         (else ts) ) ) ) )
+
+;; This is the insert-with-balancing into a height-balanced binary tree:
+;; It's puzzling to me that inserting a bunch of keys in sequential order
+;; results in a tree with lots of single-child nodes down at the leaf
+;; level:  so many of the leaves don't have siblings!  What's up with that?
+;; I think it may be a consequence of the ordering of the keys, and the fact
+;; that it's not like b*tree, in which there's a distinction between the
+;; data-nodes and internal nodes.  So, is's much less of an approximation
+;; of a complete binary tree than I thought...
+;; 
+;; Ah!  It turned out to be a bit of a fine point:
+;; Once I changed the theight function to define the height of an empty
+;; tree as -1, then there was an easy distinction between the height of
+;; an empty tree and the height of a single-node tree.  This made the
+;; tree-structure more "complete," and obviated some special-case
+;; code.
 
 ;; The following is a rewritten version of the b-insert
 ;; function which usese the above rebalance function and eliminates
