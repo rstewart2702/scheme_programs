@@ -511,32 +511,35 @@
 ;; can be eliminated during the search for items which
 ;; fall into the range specified by x and y.
 ;;
-;; THIS NEEDS TO BE REWRITTEN IN TERMS OF THE kcomp
-;; FUNCTION, INSTEAD OF DIRECTLY ACCESSING THE KEY
-;; VALUES AND TREATING THEM LIKE NUMBERS, BECAUSE THIS
-;; AFFECTS GENERALITY TO OTHER KINDS OF ORDERED SETS.
 (define list-range
   (lambda (t x y)
-    (cond
-     ((null? t) '())
-     (else
-      (append
-       (cond
-        ((and (not (null? (lchild t)))
-              (or (<= x (tkey t))
-                  (<= y (tkey t)) ) )
-         (list-range (lchild t) x y) )
-        (else '()) )
-       (cond
-        ((and (<= x (tkey t)) (<= (tkey t) y))
-         (cons (tkey t) '()) )
-        (else '()) )
-       (cond
-        ((and (not (null? (rchild t)))
-              (or  (<= (tkey t) x )
-                   (<= (tkey t) y )) )
-         (list-range (rchild t) x y) )
-        (else '()) ) ) ) ) ) )
+    (letrec
+        ((xnode (mknode x))
+         (ynode (mknode y))
+         (lr-inner
+          (lambda (ti)
+            (cond
+             ((null? ti) '())
+             (else
+              (append
+               (cond
+                ((and (not (null? (lchild ti)))
+                      (or (kcomp xnode ti)
+                          (kcomp ynode ti) ) )
+                 (lr-inner (lchild ti)) )
+                (else '()) )
+               (cond
+                ((and (or (kcomp xnode ti) (equal? (tkey ti) (tkey xnode)))
+                      (or (kcomp ti ynode) (equal? (tkey ti) (tkey ynode))) )
+                 (cons (tkey ti) '()) )
+                (else '()) )
+               (cond
+                ((and (not (null? (rchild ti)))
+                      (or  (kcomp ti xnode )
+                           (kcomp ti ynode )) )
+                 (lr-inner (rchild ti)) )
+                (else '()) ) ) ) ) ) ) )
+      (lr-inner t) ) ) )
 
 ;; The simple operations:
 (define b-find
