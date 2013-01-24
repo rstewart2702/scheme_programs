@@ -408,49 +408,79 @@
 
 (define remove-from-tree
   (lambda (ts k)
-    (let
-        ( (kt (mknode k)) )
-      (cond
-       ;; ((null? (lchild ts))
-       ;;  (rchild ts) )
-       ((kcomp kt ts)
-        (let
-            ((new-lc (remove-from-tree (lchild ts) k)))
-          (rebalance
-           (mktree
-            (make-trec
-             (tkey ts)
-             (+ 1 (max (theight new-lc) (theight (rchild ts)))) )
-            new-lc
-            (rchild ts) ) ) ) )
-       ((kcomp ts kt)
-        (let
-            ((new-rc (remove-from-tree (rchild ts) k)))
-          (rebalance
-           (mktree
-            (make-trec
-             (tkey ts)
-             (+ 1 (max (theight (lchild ts)) (theight new-rc))) )
-            (lchild ts)
-            new-rc ) ) ) )
-       (else
-        ;; The key in question, k, is in the root of the tree ts.
-        (cond
-         ((and
-           (null? (rchild ts))
-           (null? (rchild ts)) )
-          '() )
-         (else
-          (letrec
-              ((new-key (find-min (rchild ts)))
-               (new-rc (remove-from-tree (rchild ts) new-key)) )
-            (rebalance
-             (mktree
-              (make-trec
-               new-key
-               (+ 1 (max (theight (lchild ts)) (theight new-rc))) )
-              (lchild ts)
-              new-rc) ) ) ) ) ) ) ) ) )
+    (letrec
+        ((kt (mknode k))
+         (rft-inner
+          (lambda (ti)
+            (cond
+             ;; ((null? (lchild ti))
+             ;;  (rchild ti) )
+             ((kcomp kt ti)
+              (let
+                  ((new-lc (rft-inner (lchild ti) )))
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ti)
+                   (+ 1 (max (theight new-lc) (theight (rchild ti)))) )
+                  new-lc
+                  (rchild ti) ) ) ) )
+             ((kcomp ti kt)
+              (let
+                  ((new-rc (rft-inner (rchild ti))))
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ti)
+                   (+ 1 (max (theight (lchild ti)) (theight new-rc))) )
+                  (lchild ti)
+                  new-rc ) ) ) )
+             (else
+              ;; The key in question, k, is in the root of the tree ti.
+              (cond
+               ((and
+                 (null? (rchild ti))
+                 (null? (lchild ti)) )
+                '() )
+               (else
+                (letrec
+                    ;; Special case needed when there is not
+                    ;; a right-hand subtree from which to retrieve
+                    ;; a replacement for the key to be deleted.
+                    ;; When that happens, then new key comes from the left
+                    ;; subtree, which can only be a leaf.
+                    ((new-key
+                      (cond
+                       ((null? (rchild ti)) (tkey (lchild ti)))
+                       (else (find-min (rchild ti))) ) )
+                     (new-rc
+                      (cond
+                       ((null? (rchild ti)) '() )
+                       (else (remove-from-tree (rchild ti) new-key)) ) )
+                     (new-lc
+                      (cond
+                       ((null? (rchild ti)) '())
+                       (else (lchild ti) ) ) ) )
+                  (rebalance
+                   (mktree
+                    (make-trec
+                     new-key
+                     (+ 1 (max (theight new-lc) (theight new-rc))) )
+                    new-lc
+                    new-rc) ) ) ) ) ) ) ) ) )
+      (rft-inner ts) ) ) )
+
+(define del-test-350
+  (lambda ()
+    (letrec
+        ((big-tree (bt-test 350))
+         (remove-loop
+          (lambda (n ts)
+            (cond
+             ((equal? n 0) ts)
+             (else
+              (remove-loop (- n 1) (remove-from-tree ts n)) ) ) ) ) )
+      (remove-loop 120 big-tree ) ) ) ) 
 
 ;; This all needs to be factored further, and the specifications could be
 ;; further re-cast in such a manner that let or letrec expressions
@@ -576,92 +606,4 @@
 ;; The huge differences start to show up once the size of the set
 ;; gets up to 100000, so it seems.  But those are just ad hoc tests,
 ;; done off the cuff, using racket's time function...
-
-;; &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-;; OLD code, of historical interest, but must be ultimately discarded.
-
-;; remove-min became the foundation of the ultimate, more generalized
-;; remove-from-tree function.  This was due to realizing that deletion
-;; from the balanced tree structure could be defined in terms of
-;; replacement of a key with its successor, which in turn must be removed
-;; from its own subtree.  Since successors are always leaf nodes, or
-;; nearly leaf nodes, this should help us argue for termination of the
-;; tree traversal defined by the remove-from-tree function, right?
-
-;; This is intended to calculate the tree with the smallest key
-;; removed:
-;;
-;; We must separate concerns:  This should *only* "recurse" down
-;; to the minimal node, and then get rid of it.  And after that
-;; happens, the returned tree should be rebalanced, right, and the
-;; rebalancing operations must propagate all the way back up to
-;; the root...
-;;
-;; A remove-min is the result of recalculating all of the left-most
-;; subtrees, isn't it?
-(define remove-min
-  (lambda (ts)
-      (cond
-       ((null? (lchild ts))
-        ;; This is the "base-case.":
-        ;; The left subtree is empty, and therefore this is the node to be excised.
-        ;; This subtree must be replaced by its sibling from the right-hand
-        ;; side:
-        (rchild ts) )
-       (else
-         ;; This is the "recursive-case":
-         ;; We must re-derive the resulting tree, rooted at ts, and
-         ;; derived the properly balanced version, at that.
-         (letrec
-             (;; We need the new right-hand subtree?
-              ;; We need the new left-hand subtree (obtained by the recursive
-              ;; call to remove-min, yes?)
-              ;; We may need to do an l-rotate on the right-hand subtree, if
-              ;; its left-child is "too tall," i.e., the right-hand subtree
-              ;; is left-heavy.
-              (new-lchild (remove-min (lchild ts)))
-              (rc-height (theight (rchild ts)) ) )
-           (cond
-            ((> (abs (- ((theight new-lchild) (rc-height)))) 1)
-             ;; If the two subtrees' heights differ by more than 1,
-             ;; then some rebalancing of the search tree is necessary.
-             (letrec
-                 ((rc (rchild ts))
-                  (lc-of-rc (lchild rc))
-                  (rc-of-rc (rchild rc))
-                  (lc-of-rc-height (theight lc-of-rc))
-                  (rc-of-rc-height (theight rc-of-rc)) )
-             (cond
-              ((> (lc-of-rc-height) (rc-of-rc-height))
-               ;; If the right-hand side of the present subtree is
-               ;; "left-heavy," then it should be r-rotate'd so that
-               ;; the final l-rotate'd tree will come out at the
-               ;; correct height.
-               (let
-                   ((new-rc (r-rotate rc)) )
-                 (l-rotate
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max (theight new-lchild) (theight new-rc)) ) )
-                   new-lchild
-                   new-rc ) ) ) )
-              (else
-               ;; The right-hand side of the present subtree is not
-               ;; "left-heavy" so the rebalanced tree is simply the
-               ;; l-rotate of the present subtree.
-               (l-rotate
-                (mktree
-                 (make-trec
-                  (tkey ts)
-                  (+ 1 (max (theight new-lchild) (theight rc))) )
-                 new-lchild
-                 rc) ) ) ) ) )
-            (else
-             (mktree
-              (make-trec
-               (tkey ts)
-               (+ 1 (max (theight new-lchild) (theight rc) ) ) )
-              new-lchild
-              rc) ) ) ) ) ) ) )
 
