@@ -510,6 +510,11 @@
 ;; of the tree means that big chunks of the key-space
 ;; can be eliminated during the search for items which
 ;; fall into the range specified by x and y.
+;;
+;; THIS NEEDS TO BE REWRITTEN IN TERMS OF THE kcomp
+;; FUNCTION, INSTEAD OF DIRECTLY ACCESSING THE KEY
+;; VALUES AND TREATING THEM LIKE NUMBERS, BECAUSE THIS
+;; AFFECTS GENERALITY TO OTHER KINDS OF ORDERED SETS.
 (define list-range
   (lambda (t x y)
     (cond
@@ -518,8 +523,8 @@
       (append
        (cond
         ((and (not (null? (lchild t)))
-              (or (<= x (tkey (lchild t)))
-                  (<= y (tkey (lchild t))) ) )
+              (or (<= x (tkey t))
+                  (<= y (tkey t)) ) )
          (list-range (lchild t) x y) )
         (else '()) )
        (cond
@@ -528,8 +533,8 @@
         (else '()) )
        (cond
         ((and (not (null? (rchild t)))
-              (or  (<= x (tkey (rchild t)))
-                   (<= y (tkey (rchild t)))) )
+              (or  (<= (tkey t) x )
+                   (<= (tkey t) y )) )
          (list-range (rchild t) x y) )
         (else '()) ) ) ) ) ) )
 
