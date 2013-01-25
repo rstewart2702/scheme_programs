@@ -223,7 +223,7 @@
             (cond
              ((equal? key limit) tree)
              (else
-              (bt-test-tr (b-insert2 tree key) (+ 1 key) limit) ) ) ) ) )
+              (bt-test-tr (b-insert tree key) (+ 1 key) limit) ) ) ) ) )
       (bt-test-tr ts 1 n) ) ) )
 
 (define bt-test-d
@@ -235,7 +235,7 @@
             (cond
              ((equal? key limit) tree)
              (else
-              (bt-test-tr (b-insert2 tree key) (- key 1) limit) ) ) ) )
+              (bt-test-tr (b-insert tree key) (- key 1) limit) ) ) ) )
          )
       (bt-test-tr ts (- n 2) 0) ) ) )
 
@@ -246,9 +246,9 @@
          (bt-test-range-tr
           (lambda (tree x y)
             (cond
-             ((equal? x y) (b-insert2 tree x))
+             ((equal? x y) (b-insert tree x))
              (else
-              (bt-test-range-tr (b-insert2 tree x) (+ x 1) y) ) ) ) ) )
+              (bt-test-range-tr (b-insert tree x) (+ x 1) y) ) ) ) ) )
       (bt-test-range-tr ts (+ x 1) y) ) ) )
          
 
@@ -276,49 +276,49 @@
 
 (define rebalance
   (lambda (ts)
-     (letrec
-         ((lc        (lchild ts))
-          (rc        (rchild ts))
-          (lc-height (theight lc) )
-          (rc-height (theight rc) ) )
-       (cond
-        ((> (abs (- lc-height rc-height)) 1 )
-         (cond
-          ((< lc-height rc-height)
-           (let
-               ((lc-of-rc (lchild (rchild ts)))
-                (rc-of-rc (rchild (rchild ts))) )
-             (cond
-              ((> (theight lc-of-rc) (theight rc-of-rc))
-               (let
-                   ((new-rc (r-rotate rc)) )
-                 (l-rotate
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max lc-height (theight new-rc))))
-                   lc
-                   new-rc) ) ) )
-              ((<= (theight lc-of-rc) (theight rc-of-rc))
-               (l-rotate ts) ) ) ) )
-          ((> lc-height rc-height)
-           (let
-               ((lc-of-lc (lchild (lchild ts)))
-                (rc-of-lc (rchild (lchild ts))) )
-             (cond
-              ((> (theight rc-of-lc) (theight lc-of-lc))
-               (let
-                   ((new-lc (l-rotate lc)) )
-                 (r-rotate
-                  (mktree
-                   (make-trec
-                    (tkey ts)
-                    (+ 1 (max (theight new-lc) rc-height)) )
-                   new-lc
-                   rc ) ) ) )
-              ((<= (theight rc-of-lc) (theight lc-of-lc))
-               (r-rotate ts) ) ) ) ) ) )
-        (else ts) ) ) ) )
+    (letrec
+        ((lc        (lchild ts))
+         (rc        (rchild ts))
+         (lc-height (theight lc) )
+         (rc-height (theight rc) ) )
+      (cond
+       ((> (abs (- lc-height rc-height)) 1 )
+        (cond
+         ((< lc-height rc-height)
+          (let
+              ((lc-of-rc (lchild (rchild ts)))
+               (rc-of-rc (rchild (rchild ts))) )
+            (cond
+             ((> (theight lc-of-rc) (theight rc-of-rc))
+              (let
+                  ((new-rc (r-rotate rc)) )
+                (l-rotate
+                 (mktree
+                  (make-trec
+                   (tkey ts)
+                   (+ 1 (max lc-height (theight new-rc))))
+                  lc
+                  new-rc) ) ) )
+             ((<= (theight lc-of-rc) (theight rc-of-rc))
+              (l-rotate ts) ) ) ) )
+         ((> lc-height rc-height)
+          (let
+              ((lc-of-lc (lchild (lchild ts)))
+               (rc-of-lc (rchild (lchild ts))) )
+            (cond
+             ((> (theight rc-of-lc) (theight lc-of-lc))
+              (let
+                  ((new-lc (l-rotate lc)) )
+                (r-rotate
+                 (mktree
+                  (make-trec
+                   (tkey ts)
+                   (+ 1 (max (theight new-lc) rc-height)) )
+                  new-lc
+                  rc ) ) ) )
+             ((<= (theight rc-of-lc) (theight lc-of-lc))
+              (r-rotate ts) ) ) ) ) ) )
+       (else ts) ) ) ) )
 
 ;; This is the insert-with-balancing into a height-balanced binary tree:
 ;; It's puzzling to me that inserting a bunch of keys in sequential order
@@ -337,40 +337,107 @@
 ;; code.
 
 ;; The following is a rewritten version of the b-insert
-;; function which usese the above rebalance function and eliminates
+;; function which uses the above rebalance function and eliminates
 ;; lots of redundant definitions.
 
-(define b-insert2
+;; Using the letrec to bind newtree to (mknode itm)
+;; in a context outside the recursive definition of the insertion
+;; (named b-ins-inner) helps avoid unnecessary cons-ing that
+;; was done in earlier version of this function.
+(define b-insert
   (lambda (ts itm)
-    (let ((newtree (mknode itm)) )
-      (cond 
-         ((null? ts)
-          ;; If we're inserting into an "empty tree" then the result is
-          ;; merely the result of creating a new tree/node from the itm.
-          newtree)
-         (else
-          (let
-              ( (lc (lchild ts))
-                (rc (rchild ts)) )
-            (cond
-             ((kcomp ts newtree)
-              (let ( (rt-new (b-insert2 rc itm)) )
+    (letrec
+        ((newtree (mknode itm))
+         (b-ins-inner
+          (lambda (ti)
+            (cond 
+             ((null? ti)
+              ;; If we're inserting into an "empty tree" then the result is
+              ;; merely the result of creating a new tree/node from the itm.
+              newtree)
+             (else
+              (letrec
+                  ( (lc (lchild ti))
+                    (rc (rchild ti))
+                    (lt-new (cond ((kcomp newtree ti) (b-ins-inner lc))
+                                  (else lc) ) )
+                    (rt-new (cond ((kcomp ti newtree) (b-ins-inner rc))
+                                  (else rc) ) ) )
                 (rebalance
                  (mktree
                   (make-trec
-                   (tkey ts)
-                   (+ 1 (max (theight lc) (theight rt-new)) ) )
-                   lc
-                   rt-new) ) ) )
-             ((kcomp newtree ts)
-              (let ( (lt-new (b-insert2 lc itm)) )
-                (rebalance
-                 (mktree
-                  (make-trec
-                   (tkey ts)
-                   (+ 1 (max (theight lt-new) (theight rc)) ) )
+                   (tkey ti)
+                   (+ 1 (max (theight lt-new) (theight rt-new))) )
                   lt-new
-                  rc) ) ) ) ) ) ) ) ) ) )
+                  rt-new ) ) ) ) ) ) ) )
+    (b-ins-inner ts) ) ) )
+
+; I started the following version of the insert operator because
+; I was starting to understand that it will not always be necessary
+; to invoke the rebalance function on a resulting tree, whenever
+; the insert was done in a tree for which the two subtrees were
+; of equal height, or when the insert was into the shorter of
+; the two subtrees of an unbalanced tree.  But it seems to me that,
+; in order to determine whether or not a rebalance will be needed
+; after inserting into the taller side of an unbalanced tree,
+; the heights of the child subtrees of the taller side must also
+; be examined, right?  And I fail to see how that is much cheaper
+; than simply comparing the heights of the two subtrees which
+; must be reassembled back together into the resulting tree, and
+; rebalancing that tree when necessary.  Maybe in an imperative
+; setting, it's cheaper to do the lookahead and avoid the rebalancing,
+; but the cost of storing and checking the "balance factor's" in
+; order to make a "rebalancing determination" possible does not
+; seem to be any cheaper than "rebalancing the resulting new
+; tree, if necessary, after inserting into the subtree."
+;
+; But I'm struggling to avoid really ugly code with lots of nasty
+; repetition...
+;
+;; (define b-insert
+;;   (lambda (ts itm)
+;;     (let ((newtree (mknode itm)) )
+;;       (cond 
+;;          ((null? ts)
+;;           ;; If we're inserting into an "empty tree" then the result is
+;;           ;; merely the result of creating a new tree/node from the itm.
+;;           newtree)
+;;          (else
+;;           (let
+;;               ( (lc (lchild ts))
+;;                 (rc (rchild ts))
+;;                 (bal-fac
+;;                  (cond ((equal? (theight lc)(theight rc)) 'B)
+;;                        ((<      (theight lc)(theight rc)) 'R)
+;;                        ((>      (theight lc)(theight rc)) 'L) ))
+;;                 (rt-new
+;;                  (cond ((kcomp ts newtree) (b-insert rc itm) )
+;;                        (else '()) ) )
+;;                 (lt-new
+;;                  (cond ((kcomp newtree ts) (b-insert lc itm) )
+;;                        (else '()) ) )
+;;             (cond
+;;              ((kcomp ts newtree)
+;;               (let ( (rt-new (b-insert rc itm)) )
+;;                 (cond
+;;                  ((or (equal? bal-fac 'B) (equal? bal-fac 'L))
+;;                   (rebalance 
+;;                 (rebalance
+;;                  (mktree
+;;                   (make-trec
+;;                    (tkey ts)
+;;                    (+ 1 (max (theight lc) (theight rt-new)) ) )
+;;                    lc
+;;                    rt-new) ) ) )
+;;              ((kcomp newtree ts)
+;;               (let ( (lt-new (b-insert lc itm)) )
+;;                 (rebalance
+;;                  (mktree
+;;                   (make-trec
+;;                    (tkey ts)
+;;                    (+ 1 (max (theight lt-new) (theight rc)) ) )
+;;                   lt-new
+;;                   rc) ) ) ) ) ) ) ) ) ) )
 
 
 ;; So, a deletion function must:
