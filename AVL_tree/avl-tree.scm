@@ -283,42 +283,53 @@
          (rc-height (theight rc) ) )
       (cond
        ((> (abs (- lc-height rc-height)) 1 )
+        ;; (printf "Rebalancing needed, at key:  ~v~n" (tkey ts))
+        ;; (printf "Current height:  ~v~n" (theight ts))
+        ;; (printf "left child height: ~v~n" (theight (lchild ts)))
+        ;; (printf "right child height: ~v~n" (theight (rchild ts)))
         (cond
          ((< lc-height rc-height)
-          (let
+          (letrec
               ((lc-of-rc (lchild (rchild ts)))
-               (rc-of-rc (rchild (rchild ts))) )
-            (cond
-             ((> (theight lc-of-rc) (theight rc-of-rc))
-              (let
-                  ((new-rc (r-rotate rc)) )
-                (l-rotate
-                 (mktree
-                  (make-trec
-                   (tkey ts)
-                   (+ 1 (max lc-height (theight new-rc))))
-                  lc
-                  new-rc) ) ) )
-             ((<= (theight lc-of-rc) (theight rc-of-rc))
-              (l-rotate ts) ) ) ) )
+               (rc-of-rc (rchild (rchild ts)))
+               (result-tree
+                (cond
+                 ((> (theight lc-of-rc) (theight rc-of-rc))
+                  (let
+                      ((new-rc (r-rotate rc)) )
+                    (l-rotate
+                     (mktree
+                      (make-trec
+                       (tkey ts)
+                       (+ 1 (max lc-height (theight new-rc))))
+                      lc
+                      new-rc) ) ) )
+                 ((<= (theight lc-of-rc) (theight rc-of-rc))
+                  (l-rotate ts) ) ) ) )
+            ;; (printf "Rebalanced to height: ~v~n" (theight result-tree))
+            result-tree ) )
          ((> lc-height rc-height)
-          (let
+          (letrec
               ((lc-of-lc (lchild (lchild ts)))
-               (rc-of-lc (rchild (lchild ts))) )
-            (cond
-             ((> (theight rc-of-lc) (theight lc-of-lc))
-              (let
-                  ((new-lc (l-rotate lc)) )
-                (r-rotate
-                 (mktree
-                  (make-trec
-                   (tkey ts)
-                   (+ 1 (max (theight new-lc) rc-height)) )
-                  new-lc
-                  rc ) ) ) )
-             ((<= (theight rc-of-lc) (theight lc-of-lc))
-              (r-rotate ts) ) ) ) ) ) )
-       (else ts) ) ) ) )
+               (rc-of-lc (rchild (lchild ts)))
+               (result-tree
+                (cond
+                 ((> (theight rc-of-lc) (theight lc-of-lc))
+                  (let
+                      ((new-lc (l-rotate lc)) )
+                    (r-rotate
+                     (mktree
+                      (make-trec
+                       (tkey ts)
+                       (+ 1 (max (theight new-lc) rc-height)) )
+                      new-lc
+                      rc ) ) ) )
+                 ((<= (theight rc-of-lc) (theight lc-of-lc))
+                  (r-rotate ts) ) ) )
+               )
+            ;; (printf "Rebalanced to height: ~v~n" (theight result-tree))
+            result-tree ) ) ) )
+        (else ts) ) ) ) )
 
 ;; This is the insert-with-balancing into a height-balanced binary tree:
 ;; It's puzzling to me that inserting a bunch of keys in sequential order
@@ -363,6 +374,7 @@
                                   (else lc) ) )
                     (rt-new (cond ((kcomp ti newtree) (b-ins-inner rc))
                                   (else rc) ) ) )
+                ;; (printf "b-insert now at key ~v~n" (tkey ti))
                 (rebalance
                  (mktree
                   (make-trec
@@ -370,7 +382,8 @@
                    (+ 1 (max (theight lt-new) (theight rt-new))) )
                   lt-new
                   rt-new ) ) ) ) ) ) ) )
-    (b-ins-inner ts) ) ) )
+      ;; (printf "adding key ~v~n" itm)
+      (b-ins-inner ts) ) ) )
 
 ; I started the following version of the insert operator because
 ; I was starting to understand that it will not always be necessary
@@ -391,54 +404,28 @@
 ; seem to be any cheaper than "rebalancing the resulting new
 ; tree, if necessary, after inserting into the subtree."
 ;
-; But I'm struggling to avoid really ugly code with lots of nasty
-; repetition...
+; If the tree is unbalanced, and we're inserting into the taller of
+; the subtrees, then rebalancing could be needed?
 ;
-;; (define b-insert
-;;   (lambda (ts itm)
-;;     (let ((newtree (mknode itm)) )
-;;       (cond 
-;;          ((null? ts)
-;;           ;; If we're inserting into an "empty tree" then the result is
-;;           ;; merely the result of creating a new tree/node from the itm.
-;;           newtree)
-;;          (else
-;;           (let
-;;               ( (lc (lchild ts))
-;;                 (rc (rchild ts))
-;;                 (bal-fac
-;;                  (cond ((equal? (theight lc)(theight rc)) 'B)
-;;                        ((<      (theight lc)(theight rc)) 'R)
-;;                        ((>      (theight lc)(theight rc)) 'L) ))
-;;                 (rt-new
-;;                  (cond ((kcomp ts newtree) (b-insert rc itm) )
-;;                        (else '()) ) )
-;;                 (lt-new
-;;                  (cond ((kcomp newtree ts) (b-insert lc itm) )
-;;                        (else '()) ) )
-;;             (cond
-;;              ((kcomp ts newtree)
-;;               (let ( (rt-new (b-insert rc itm)) )
-;;                 (cond
-;;                  ((or (equal? bal-fac 'B) (equal? bal-fac 'L))
-;;                   (rebalance 
-;;                 (rebalance
-;;                  (mktree
-;;                   (make-trec
-;;                    (tkey ts)
-;;                    (+ 1 (max (theight lc) (theight rt-new)) ) )
-;;                    lc
-;;                    rt-new) ) ) )
-;;              ((kcomp newtree ts)
-;;               (let ( (lt-new (b-insert lc itm)) )
-;;                 (rebalance
-;;                  (mktree
-;;                   (make-trec
-;;                    (tkey ts)
-;;                    (+ 1 (max (theight lt-new) (theight rc)) ) )
-;;                   lt-new
-;;                   rc) ) ) ) ) ) ) ) ) ) )
-
+; All of the above ruminations were due to my fundamental misunderstanding
+; of the nature of rebalancing.  It turns out that the most important
+; thing is that rebalancing can only decrease the height of a tree, i.e.,
+; if a tree increases in height because one of its subtrees has grown
+; in height by 1, then rebalancing will shrink the height of the tree
+; by 1.  This means that once a rebalancing operation has been performed,
+; the rotated/rebalanced tree's height has not been changed, which means
+; that more rotations are not necessary.
+;
+; Even an imperative solution is not going to be doing "lookahead."
+; Instead, a flag value is passed back from a recursive call to indicate
+; that a rotation has already been performed, and that further rotations
+; are not necessary.  We could do this in a Scheme solution if the
+; insertion function was designed in a tail-recursive manner, and used
+; an explicit stack to manage the tree traversal, so that a separate,
+; tail-recursive, "use-the-stack-to-walk-back-up-to-the-root" function
+; could use a "we've already done a rotation/rebalancing, so you don't
+; even need to check" flag...
+;
 
 ;; So, a deletion function must:
 ;; calculate the root of the subtree which contains the key to
