@@ -407,6 +407,7 @@
 ; If the tree is unbalanced, and we're inserting into the taller of
 ; the subtrees, then rebalancing could be needed?
 ;
+; IN THE CONTEXT OF AN INSERT OPERATION:
 ; All of the above ruminations were due to my fundamental misunderstanding
 ; of the nature of rebalancing.  It turns out that the most important
 ; thing is that rebalancing can only decrease the height of a tree, i.e.,
@@ -522,6 +523,7 @@
                      (+ 1 (max (theight new-lc) (theight new-rc))) )
                     new-lc
                     new-rc) ) ) ) ) ) ) ) ) )
+      ;; (printf "Deleting ~v~n" k)
       (rft-inner ts) ) ) )
 
 (define del-test-350
@@ -595,7 +597,7 @@
 ;; can be eliminated during the search for items which
 ;; fall into the range specified by x and y.
 ;;
-(define list-range
+(define b-list-range
   (lambda (t x y)
     (letrec
         ((xnode (mknode x))
@@ -646,6 +648,14 @@
      ((null? lst) '())
      ((equal? x (car lst)) x)
      (else (list-find (cdr lst) x)) ) ) )
+
+(define list-range
+  (lambda (lst x y)
+    (cond
+     ((null? lst) '())
+     ((and (<= x (car lst)) (<= (car lst) y))
+      (cons (car lst) (list-range (cdr lst) x y)))
+     (else (list-range (cdr lst) x y)) ) ) )
 
 (define list-gen
   (lambda (n)
