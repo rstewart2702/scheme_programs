@@ -583,6 +583,115 @@
           (lchild tl)
           new-rc ) ) ) ) ) ) )
 
+(define lconcat-key
+  (lambda (tl tr split-key)
+    (letrec ((height-eq (equal? (theight tl) (theight tr)) )
+             (height-gt (<      (theight tl) (theight tr)) )
+             (new-key (cond ((or height-gt height-eq) split-key)
+                            (else (tkey tl)) ) )
+             (new-tr  (cond ((or height-gt height-eq) tr)
+                            (else (lconcat-key (rchild tl) tr split-key) ) ) )
+             (new-tl  (cond ((or height-gt height-eq) tl)
+                            (else (lchild tl))) ) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+        new-tl
+        new-tr ) ) ) ) )
+
+(define rconcat-key
+  (lambda (tl tr split-key)
+    (letrec ((height-eq (equal? (theight tl) (theight tr)) )
+             (height-gt (>      (theight tl) (theight tr)) )
+             (new-key (cond ((or height-gt height-eq) split-key)
+                            (else (tkey tr)) ) )
+             (new-tr  (cond ((or height-gt height-eq) tr)
+                            (else (rchild tr)) ) )
+             (new-tl  (cond ((or height-gt height-eq) tl)
+                            (else (rconcat-key tl (lchild tr) split-key)))) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+        new-tl
+        new-tr ) ) ) ) )
+
+;; These two aren't quite correct, unlike lconcat-key and rconcat-key
+;; above.  They should probably be re-rewritten in terms of those
+;; functions anyhow!
+(define lconcat
+  (lambda (tl tr)
+    (letrec
+        ((height-eq (equal? (theight tl) (theight tr)))
+         (new-key (cond (height-eq (find-min tr))
+                        (else (tkey tl)) ) )
+         (new-tr  (cond (height-eq (remove-from-tree tr new-key))
+                        (else (lconcat (rchild tl) tr) ) ) )
+         (new-tl  (cond (height-eq tl)
+                        (else (lchild tl) ) ) ) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+         new-tl
+         new-tr ) ) ) ) )
+
+(define rconcat
+  (lambda (tl tr)
+    (letrec
+        ((height-eq (equal? (theight tl) (theight tr)))
+         (new-key (cond (height-eq (find-min tr))
+                        (else (tkey tr)) ) )
+         (new-tr  (cond (height-eq (remove-from-tree tr new-key))
+                        (else (rchild tr)) ) )
+         (new-tl  (cond (height-eq tl)
+                        (else (rconcat tl (lchild tr)) ) ) ) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+         new-tl
+         new-tr ) ) ) ) )
+
+;; Splits a balanced tree t, by key value skey, so that
+;; all keys < skey are in (car (b-split t skey))
+;; and all keys > skey are in (cdr (bsplit t skey))
+;;
+;; It's amazing how quickly this falls into place when
+;; one finally understands how to leverage the well-ordering
+;; properties of the tree structure, and how the
+;; root node stranded by the splitting of a subtree can become
+;; the root node when deriving a concatenation, which is how
+;; those rconcat-key and lconcat-key functions are used.
+(define b-split
+  (lambda (t skey)
+    (letrec
+        ((skn
+          (mknode skey))
+         (b-split-i
+          (lambda (t kn)
+            (cond
+             ((equal? (tkey t) (tkey kn))
+              (cons
+               (lchild t)
+               (rchild t) ) )
+             ((kcomp kn t)
+              (let ((sr (b-split-i (lchild t) kn) ) )
+                (cons
+                 (car sr)
+                 (rconcat-key (cdr sr) (rchild t) (tkey t)) ) ) )
+             ((kcomp t kn)
+              (let ((sr (b-split-i (rchild t) kn) ) )
+                (cons
+                 (lconcat-key (lchild t) (car sr) (tkey t))
+                 (cdr sr) ) ) ) ) ) ) )
+      (b-split-i t skn) ) ) )
+
 ;; This is a range-search operation:
 ;; it may not be particularly efficient,
 ;; partly because of the use of append, and
