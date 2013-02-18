@@ -35,6 +35,13 @@
 (define kcomp
   (lambda (x y) (< (tkey x) (tkey y))))
 
+;; At present, we can store strings into an avl-tree
+;; if we define kcomp to use the string<? function
+;; instead of <, which is used to compare numbers:
+;; (define kcomp
+;;   (lambda (x y) (string<? (tkey x) (tkey y))))
+
+
 (define t-height
   (lambda (ts) 
     (let ((lc (lchild ts))
@@ -619,44 +626,22 @@
         new-tl
         new-tr ) ) ) ) )
 
-;; These two aren't quite correct, unlike lconcat-key and rconcat-key
-;; above.  They should probably be re-rewritten in terms of those
-;; functions anyhow!
+;; lconcat and rconcat concatenate trees together and
+;; are defined in terms of the lconcat-key and rconcat-key.
+;; The idea is to derive the "splitting key" from the right-hand
+;; tree in the concatenation.
 (define lconcat
   (lambda (tl tr)
-    (letrec
-        ((height-eq (equal? (theight tl) (theight tr)))
-         (new-key (cond (height-eq (find-min tr))
-                        (else (tkey tl)) ) )
-         (new-tr  (cond (height-eq (remove-from-tree tr new-key))
-                        (else (lconcat (rchild tl) tr) ) ) )
-         (new-tl  (cond (height-eq tl)
-                        (else (lchild tl) ) ) ) )
-      (rebalance
-       (mktree
-        (make-trec
-         new-key
-         (+ 1 (max (theight new-tl) (theight new-tr))) )
-         new-tl
-         new-tr ) ) ) ) )
+    (let
+        ((new-key (find-min tr)) )
+      (lconcat-key tl (remove-from-tree tr new-key) new-key) ) ) )
 
 (define rconcat
   (lambda (tl tr)
-    (letrec
-        ((height-eq (equal? (theight tl) (theight tr)))
-         (new-key (cond (height-eq (find-min tr))
-                        (else (tkey tr)) ) )
-         (new-tr  (cond (height-eq (remove-from-tree tr new-key))
-                        (else (rchild tr)) ) )
-         (new-tl  (cond (height-eq tl)
-                        (else (rconcat tl (lchild tr)) ) ) ) )
-      (rebalance
-       (mktree
-        (make-trec
-         new-key
-         (+ 1 (max (theight new-tl) (theight new-tr))) )
-         new-tl
-         new-tr ) ) ) ) )
+    (let
+        ((new-key (find-min tr)) )
+      (rconcat-key tl (remove-from-tree tr new-key) new-key) ) ) )
+
 
 ;; Splits a balanced tree t, by key value skey, so that
 ;; all keys < skey are in (car (b-split t skey))
@@ -689,7 +674,7 @@
               (let ((sr (b-split-i (rchild t) kn) ) )
                 (cons
                  (lconcat-key (lchild t) (car sr) (tkey t))
-                 (cdr sr) ) ) ) ) ) ) )
+                 (cdr sr)                                   ) ) ) ) ) ) )
       (b-split-i t skn) ) ) )
 
 ;; This is a range-search operation:
