@@ -40,7 +40,8 @@
 ;; instead of <, which is used to compare numbers:
 ;; (define kcomp
 ;;   (lambda (x y) (string<? (tkey x) (tkey y))))
-
+;; Here's a nice set of string-tests:
+;; (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (remove-from-tree (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (mknode "Gaddis, C") "Stewart, R") "Selle, B") "Franklin, R") "Lin, Z") "Richardson, K") "McClinton, R") "Skaarsgard, A") "Skaarsgard, S") "Khan, Shah Rukh") "Horton, G") "Desmond, C") "Johnson, H") "DeHaviland, O") "Ford M") "Goyer, D") "Nolan, C") "Boyens, P") "Chartier, D") "Carton, S") "Khan, Shah Rukh") "Khan, SR") "Rai, A") "Bacchan, A") "Bacchan, B") "Chopra, P") "Smith, HK") "Schwartz, L") "Tifton, P") "Teegan, R") "Sorkin, A") "Eurton, J") "Fuller, J") "Blackstone, H") "Blaauw, G") "Dijkstra, EW") "VanDerMeer, G") "Martin, C") "Lipton, J") "Paltrow, G") "Pitt, B") "Jones, TP") "Jackson, A") "Washington, G") "Madison, J") "Adams, J") "Smith, A") "Hayek, FA") "Keynes, JM") "Adams, JQ") "Buchanan, J") "Bowers, R") "Boyer, D") "Hoover, H") "Simpson, H") "Zogby, G") "Akhtar, Z") "Akhtar, F") "Leach, N") "Brasswell, R") "Barna, G") "Meyer, B") "Dybvig, RK") "Friedman, D") "Wand, M") "MacQueen, D") "Peyton-Jones, S") "Brooks, F") "Darnay, C") "Holmes, S") "Watson, J") "Calvin, J") "Wirth, N") "Gries, D") "Poythress, V")
 
 (define t-height
   (lambda (ts) 
@@ -64,35 +65,28 @@
 ;; This is the "naive" insert into a binary tree:
 (define t-insert
   (lambda (ts itm)
-    (let ((newtree (mknode itm))
-          )
+    (let ((newtree (mknode itm)) )
       (cond 
-         ((null? ts)
-          ;; If we're inserting into an "empty tree" then the result is
-          ;; merely the result of creating a new tree/node from the itm.
-          newtree)
-         ((kcomp ts newtree) 
-          (letrec ( (lc (lchild ts))
-                    (rc (rchild ts))
-                    (rt-new (t-insert rc itm)) ;; derive the new right-hand subtree
-                    )
-            (mktree 
-             (make-trec (tkey ts) (+ 1 (max (theight lc) (theight rt-new)) ) )
-             lc
-             rt-new) ) )
-         ((kcomp newtree ts)
-          (letrec ( (lc (lchild ts))
-                    (rc (rchild ts))
-                    (lt-new (t-insert lc itm)) ;; derive the new left-hand subtree
-                    )
-            (mktree
-             (make-trec (tkey ts) (+ 1 (max (theight lt-new) (theight rc)) ) )
-             lt-new
-             rc) ) )
-         )
-      )
-    )
-  )
+       ((null? ts)
+        ;; If we're inserting into an "empty tree" then the result is
+        ;; merely the result of creating a new tree/node from the itm.
+        newtree)
+       ((kcomp ts newtree) 
+        (let* ( (lc (lchild ts))
+                (rc (rchild ts))
+                (rt-new (t-insert rc itm)) ) ;; derive the new right-hand subtree
+          (mktree 
+           (make-trec (tkey ts) (+ 1 (max (theight lc) (theight rt-new)) ) )
+           lc
+           rt-new) ) )
+       ((kcomp newtree ts)
+        (let* ( (lc (lchild ts))
+                (rc (rchild ts))
+                (lt-new (t-insert lc itm)) ) ;; derive the new left-hand subtree
+          (mktree
+           (make-trec (tkey ts) (+ 1 (max (theight lt-new) (theight rc)) ) )
+           lt-new
+           rc) ) ) ) ) ) )
 
 ;; N.B. There are lots of places in the following code in which the
 ;; difference between heights-of-subtrees is very important.
@@ -124,7 +118,7 @@
     (cond
      ((null? ts) ts) ;; Corner-case of an empty tree, right?
      (else           ;; We assume that there are two non-null children, right?
-      (letrec
+      (let*
           (
            ;; Calculate some particular items from the tree rooted at ts:
            (rc       (rchild ts))
@@ -147,13 +141,9 @@
              ;; and its left subtree is the lc (left-hand child) of original tree...
              lc
              ;; and its right subtree is the lc-of-rc
-             lc-of-rc
-             )
-            )
+             lc-of-rc ) )
            ;; new right-hand child, new-rc
-           (new-rc
-            rc-of-rc)
-           )
+           (new-rc rc-of-rc) )
         (mktree
          (make-trec
           (tkey rc)
@@ -166,7 +156,7 @@
     (cond
      ((null? ts) ts) ;; Corner-case of an empty tree, right?
      (else
-      (letrec
+      (let*
           (
            (rc       (rchild ts))
            (lc       (lchild ts))
@@ -193,9 +183,7 @@
              rc-of-lc
              ;; and the right-subtree is the right-hand child of existing tree
              rc
-             )
-            )
-           )
+             ) ) )
         (mktree
          (make-trec
           (tkey lc)
@@ -205,19 +193,18 @@
 
 (define b-inorder
   (lambda (ts)
-    ;; (reverse
      (cond
       ((null? ts) '())
       (else
        (append
         (b-inorder (lchild ts))
         (cons (tkey ts) '())
-        (b-inorder (rchild ts)) ) ) ) ) );;  )
+        (b-inorder (rchild ts)) ) ) ) ) )
 
 (define max-path
   (lambda (ts)
     (cond
-     ((null? ts) 0)
+     ((null? ts) -1) ;; important to that an empty tree has path-length -1?
      (else
       (max (+ 1 (max-path (lchild ts))) (+ 1 (max-path (rchild ts)) ) ) ) ) ) ) 
 
@@ -283,7 +270,7 @@
 
 (define rebalance
   (lambda (ts)
-    (letrec
+    (let*
         ((lc        (lchild ts))
          (rc        (rchild ts))
          (lc-height (theight lc) )
@@ -296,7 +283,7 @@
         ;; (printf "right child height: ~v~n" (theight (rchild ts)))
         (cond
          ((< lc-height rc-height)
-          (letrec
+          (let*
               ((lc-of-rc (lchild (rchild ts)))
                (rc-of-rc (rchild (rchild ts)))
                (result-tree
@@ -316,7 +303,7 @@
             ;; (printf "Rebalanced to height: ~v~n" (theight result-tree))
             result-tree ) )
          ((> lc-height rc-height)
-          (letrec
+          (let*
               ((lc-of-lc (lchild (lchild ts)))
                (rc-of-lc (rchild (lchild ts)))
                (result-tree
@@ -374,7 +361,7 @@
               ;; merely the result of creating a new tree/node from the itm.
               newtree)
              (else
-              (letrec
+              (let*
                   ( (lc (lchild ti))
                     (rc (rchild ti))
                     (lt-new (cond ((kcomp newtree ti) (b-ins-inner lc))
@@ -505,7 +492,7 @@
                  (null? (lchild ti)) )
                 '() )
                (else
-                (letrec
+                (let*
                     ;; Special case needed when there is not
                     ;; a right-hand subtree from which to retrieve
                     ;; a replacement for the key to be deleted.
@@ -571,7 +558,7 @@
   (lambda (tl tr)
     (cond
      ((equal? (theight tl) (theight tr))
-      (letrec ((new-key (find-min tr))
+      (let*   ((new-key (find-min tr))
                (new-tr (remove-from-tree tr new-key)) )
         (rebalance
          (mktree
@@ -592,14 +579,15 @@
 
 (define lconcat-key
   (lambda (tl tr split-key)
-    (letrec ((height-eq (equal? (theight tl) (theight tr)) )
-             (height-gt (<      (theight tl) (theight tr)) )
-             (new-key (cond ((or height-gt height-eq) split-key)
-                            (else (tkey tl)) ) )
-             (new-tr  (cond ((or height-gt height-eq) tr)
-                            (else (lconcat-key (rchild tl) tr split-key) ) ) )
-             (new-tl  (cond ((or height-gt height-eq) tl)
-                            (else (lchild tl))) ) )
+    (let*
+        ((height-eq (equal? (theight tl) (theight tr)) )
+         (height-gt (<      (theight tl) (theight tr)) )
+         (new-key (cond ((or height-gt height-eq) split-key)
+                         (else (tkey tl)) ) )
+         (new-tr  (cond ((or height-gt height-eq) tr)
+                         (else (lconcat-key (rchild tl) tr split-key) ) ) )
+         (new-tl  (cond ((or height-gt height-eq) tl)
+                         (else (lchild tl))) ) )
       (rebalance
        (mktree
         (make-trec
@@ -610,14 +598,15 @@
 
 (define rconcat-key
   (lambda (tl tr split-key)
-    (letrec ((height-eq (equal? (theight tl) (theight tr)) )
-             (height-gt (>      (theight tl) (theight tr)) )
-             (new-key (cond ((or height-gt height-eq) split-key)
-                            (else (tkey tr)) ) )
-             (new-tr  (cond ((or height-gt height-eq) tr)
-                            (else (rchild tr)) ) )
-             (new-tl  (cond ((or height-gt height-eq) tl)
-                            (else (rconcat-key tl (lchild tr) split-key)))) )
+    (let*
+        ((height-eq (equal? (theight tl) (theight tr)) )
+         (height-gt (>      (theight tl) (theight tr)) )
+         (new-key (cond ((or height-gt height-eq) split-key)
+                         (else (tkey tr)) ) )
+         (new-tr  (cond ((or height-gt height-eq) tr)
+                         (else (rchild tr)) ) )
+         (new-tl  (cond ((or height-gt height-eq) tl)
+                         (else (rconcat-key tl (lchild tr) split-key)))) )
       (rebalance
        (mktree
         (make-trec
