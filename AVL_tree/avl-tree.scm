@@ -1,5 +1,3 @@
-(define trec
-  (lambda (ts) (car ts)))
 (define make-trec
   (lambda (k h) (list k h)) )
 
@@ -14,6 +12,21 @@
 ; Pluck out the key from a tree:
 (define tkey
   (lambda (ts) (car (trec ts))))
+; Accessor function to retrieve the "key-and-height"
+; pair from the internal structure of the tree:
+(define trec
+  (lambda (ts) (car ts)))
+
+; Accessor function to retrieve the
+; user-supplied comparison function so that
+; the tree-derivation functions may use it:
+(define comparer
+  (lambda (ts) (car ts)) )
+
+; Unpack the tree-structure from its container:
+(define get-tree
+  (lambda (tc) (cadr tc)) )
+
 ; Pluck out the height stored within the "car" of
 ; the tree structure:
 (define theight
@@ -24,16 +37,38 @@
      (else (cadr (trec ts)))) ) )
 
 ;
+;; INTERNAL "CONSTRUCTION HELPER-FUNCTIONS," MAINLY FOR INTERNAL AND
+;; DIAGNOSTIC USE:
 ; Create an empty node with the given key:
 (define mknode
-  (lambda (k) (list (list k 0) '() '() )) )
-; Build up a tree:
+  (lambda (k) (list (make-trec k 0) '() '() ) ) )
+; Build up a tree-node from available key-structure,
+; left-tree, and right-tree:
 (define mktree
   (lambda (v lt rt) (list v lt rt)))
 ;
+
+(define tree-shell
+  (lambda (comp-fcn node)
+    (list comp-fcn node) ) )
+
+; Derive a new "tree root" that must reference the
+; comparison function the user provides.
+;
+; The comparison function must accept two key values
+; from data structures provided by the user, extracted
+; from the tree structure within the balance-tree
+; functions:
+(define new-tree
+  (lambda (k comp-fcn)
+    (tree-shell comp-fcn (mknode k)) ) )
+
+
 ; compare keys of two different trees rooted at x and y:
+;; (define kcomp
+;;   (lambda (x y) (< (tkey x) (tkey y))))
 (define kcomp
-  (lambda (x y) (< (tkey x) (tkey y))))
+  (lambda (x y) (< x y)))
 
 ;; At present, we can store strings into an avl-tree
 ;; if we define kcomp to use the string<? function
@@ -63,15 +98,19 @@
 ;; balanced again?
 
 ;; This is the "naive" insert into a binary tree:
+;; With the latest tweaks to the data structure, this won't work
+;; properly without further changes!
 (define t-insert
   (lambda (ts itm)
-    (let ((newtree (mknode itm)) )
+    (let
+        ((newtree (mknode itm))
+         (kcomp   (comparer ts)) )
       (cond 
        ((null? ts)
         ;; If we're inserting into an "empty tree" then the result is
         ;; merely the result of creating a new tree/node from the itm.
         newtree)
-       ((kcomp ts newtree) 
+       ((kcomp (tkey ts) (tkey newtree)) 
         (let* ( (lc (lchild ts))
                 (rc (rchild ts))
                 (rt-new (t-insert rc itm)) ) ;; derive the new right-hand subtree
@@ -79,7 +118,7 @@
            (make-trec (tkey ts) (+ 1 (max (theight lc) (theight rt-new)) ) )
            lc
            rt-new) ) )
-       ((kcomp newtree ts)
+       ((kcomp (tkey newtree) (tkey ts))
         (let* ( (lc (lchild ts))
                 (rc (rchild ts))
                 (lt-new (t-insert lc itm)) ) ;; derive the new left-hand subtree
@@ -119,9 +158,8 @@
      ((null? ts) ts) ;; Corner-case of an empty tree, right?
      (else           ;; We assume that there are two non-null children, right?
       (let*
-          (
-           ;; Calculate some particular items from the tree rooted at ts:
-           (rc       (rchild ts))
+          ;; Calculate some particular items from the tree rooted at ts:
+          ((rc       (rchild ts))
            (lc       (lchild ts))
            (lc-of-rc (lchild rc))
            (rc-of-rc (rchild rc))
@@ -157,8 +195,7 @@
      ((null? ts) ts) ;; Corner-case of an empty tree, right?
      (else
       (let*
-          (
-           (rc       (rchild ts))
+          ((rc       (rchild ts))
            (lc       (lchild ts))
            (lc-of-lc (lchild lc))
            (rc-of-lc (rchild lc))
@@ -211,7 +248,7 @@
 (define bt-test
   (lambda (n)
     (letrec
-        ((ts (mknode 0))
+        ((ts (new-tree 0 <))
          (bt-test-tr
           (lambda (tree key limit)
             (cond
@@ -223,7 +260,7 @@
 (define bt-test-d
   (lambda (n)
     (letrec
-        ((ts (mknode (- n 1)))
+        ((ts (new-tree (- n 1) <) )
          (bt-test-tr
           (lambda (tree key limit)
             (cond
@@ -236,7 +273,7 @@
 (define bt-test-range
   (lambda (x y)
     (letrec
-        ((ts (mknode x) )
+        ((ts (new-tree x <))
          (bt-test-range-tr
           (lambda (tree x y)
             (cond
@@ -353,6 +390,7 @@
   (lambda (ts itm)
     (letrec
         ((newtree (mknode itm))
+         (kcomp   (comparer ts))
          (b-ins-inner
           (lambda (ti)
             (cond 
@@ -364,9 +402,9 @@
               (let*
                   ( (lc (lchild ti))
                     (rc (rchild ti))
-                    (lt-new (cond ((kcomp newtree ti) (b-ins-inner lc))
+                    (lt-new (cond ((kcomp (tkey newtree) (tkey ti)) (b-ins-inner lc))
                                   (else lc) ) )
-                    (rt-new (cond ((kcomp ti newtree) (b-ins-inner rc))
+                    (rt-new (cond ((kcomp (tkey ti) (tkey newtree)) (b-ins-inner rc))
                                   (else rc) ) ) )
                 ;; (printf "b-insert now at key ~v~n" (tkey ti))
                 (rebalance
@@ -377,7 +415,7 @@
                   lt-new
                   rt-new ) ) ) ) ) ) ) )
       ;; (printf "adding key ~v~n" itm)
-      (b-ins-inner ts) ) ) )
+      (tree-shell kcomp (b-ins-inner (get-tree ts)) ) ) ) )
 
 ; I started the following version of the insert operator because
 ; I was starting to understand that it will not always be necessary
@@ -455,16 +493,24 @@
 ;;   function to calculate the result of inserting into a balanced
 ;;   search tree.
 
+;; Yuck!  We really need an "internalized" version of this
+;; function which deals only with trees which aren't packed
+;; into a "container" so that we're not condemned to
+;; packing a subtree into a "container" just to recursively
+;; invoke a deletion of the inorder successor key,
+;; which is one of the special cases towards the end of
+;; this function.
 (define remove-from-tree
   (lambda (ts k)
     (letrec
         ((kt (mknode k))
+         (kcomp (comparer ts))
          (rft-inner
           (lambda (ti)
             (cond
              ;; ((null? (lchild ti))
              ;;  (rchild ti) )
-             ((kcomp kt ti)
+             ((kcomp (tkey kt) (tkey ti))
               (let
                   ((new-lc (rft-inner (lchild ti) )))
                 (rebalance
@@ -474,7 +520,7 @@
                    (+ 1 (max (theight new-lc) (theight (rchild ti)))) )
                   new-lc
                   (rchild ti) ) ) ) )
-             ((kcomp ti kt)
+             ((kcomp (tkey ti) (tkey kt))
               (let
                   ((new-rc (rft-inner (rchild ti))))
                 (rebalance
@@ -505,7 +551,16 @@
                      (new-rc
                       (cond
                        ((null? (rchild ti)) '() )
-                       (else (remove-from-tree (rchild ti) new-key)) ) )
+                       (else
+                        ;; For the moment, we're condemned to
+                        ;; "packing up the subtree with the comparison function"
+                        ;; just so that a recursive call to the "outer function"
+                        ;; will receive the right kind of data structure.
+                        ;; And this result must be unpacked with get-tree.
+                        (get-tree
+                         (remove-from-tree
+                          (tree-shell kcomp (rchild ti))
+                          new-key)) ) ) )
                      (new-lc
                       (cond
                        ((null? (rchild ti)) '())
@@ -518,7 +573,7 @@
                     new-lc
                     new-rc) ) ) ) ) ) ) ) ) )
       ;; (printf "Deleting ~v~n" k)
-      (rft-inner ts) ) ) )
+      (tree-shell kcomp (rft-inner (get-tree ts))) ) ) )
 
 (define del-test-350
   (lambda ()
@@ -645,8 +700,7 @@
 (define b-split
   (lambda (t skey)
     (letrec
-        ((skn
-          (mknode skey))
+        ((skn (mknode skey))
          (b-split-i
           (lambda (t kn)
             (cond
@@ -654,17 +708,21 @@
               (cons
                (lchild t)
                (rchild t) ) )
-             ((kcomp kn t)
+             ((kcomp (tkey kn) (tkey t))
               (let ((sr (b-split-i (lchild t) kn) ) )
                 (cons
                  (car sr)
                  (rconcat-key (cdr sr) (rchild t) (tkey t)) ) ) )
-             ((kcomp t kn)
+             ((kcomp (tkey t) (tkey kn))
               (let ((sr (b-split-i (rchild t) kn) ) )
                 (cons
                  (lconcat-key (lchild t) (car sr) (tkey t))
                  (cdr sr)                                   ) ) ) ) ) ) )
-      (b-split-i t skn) ) ) )
+      (let
+          ( (result (b-split-i (get-tree t) skn)) )
+        (cons
+         (tree-shell (comparer t) (car result))
+         (tree-shell (comparer t) (cdr result)) ) ) )) )
 
 ;; This is a range-search operation:
 ;; it may not be particularly efficient,
@@ -683,9 +741,7 @@
 (define b-list-range
   (lambda (t x y)
     (letrec
-        ((xnode (mknode x))
-         (ynode (mknode y))
-         (lr-inner
+        ((lr-inner
           (lambda (ti)
             (cond
              ((null? ti) '())
@@ -693,31 +749,37 @@
               (append
                (cond
                 ((and (not (null? (lchild ti)))
-                      (or (kcomp xnode ti)
-                          (kcomp ynode ti) ) )
+                      (or (kcomp x (tkey ti))
+                          (kcomp y (tkey ti)) ) )
                  (lr-inner (lchild ti)) )
                 (else '()) )
                (cond
-                ((and (or (kcomp xnode ti) (equal? (tkey ti) (tkey xnode)))
-                      (or (kcomp ti ynode) (equal? (tkey ti) (tkey ynode))) )
+                ((and (or (kcomp x (tkey ti)) (equal? (tkey ti) x))
+                      (or (kcomp (tkey ti) y) (equal? (tkey ti) y)))
                  (cons (tkey ti) '()) )
                 (else '()) )
                (cond
                 ((and (not (null? (rchild ti)))
-                      (or  (kcomp ti xnode )
-                           (kcomp ti ynode )) )
+                      (or  (kcomp (tkey ti) x)
+                           (kcomp (tkey ti) y)) )
                  (lr-inner (rchild ti)) )
                 (else '()) ) ) ) ) ) ) )
-      (lr-inner t) ) ) )
+      (lr-inner (get-tree t)) ) ) )
 
 ;; The simple operations:
 (define b-find
-  (lambda (ts x)
-    (cond
-     ((null? ts) '())
-     ((kcomp ts (mknode x)) (b-find (rchild ts) x))
-     ((kcomp (mknode x) ts) (b-find (lchild ts) x))
-     (else (tkey ts)) ) ) )
+  (lambda (tc x)
+    (letrec
+        ((ti (get-tree tc))
+         (kcomp (comparer tc))
+         (b-find-i
+          (lambda (t)
+            (cond
+             ((null? t) '())
+             ((kcomp (tkey t) x) (b-find-i (rchild t) ))
+             ((kcomp x (tkey t)) (b-find-i (lchild t) ))
+             (else (tkey t)) ) ) ) )
+      (b-find-i ti) ) ) )
 
 ;; SOME FUNCTIONS USEFUL FOR BUILDING "REGULAR" LISTS IN ORDER
 ;; TO DO COMPARISON TESTING.
