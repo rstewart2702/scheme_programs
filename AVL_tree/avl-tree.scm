@@ -493,14 +493,71 @@
 ;;   function to calculate the result of inserting into a balanced
 ;;   search tree.
 
-;; Yuck!  We really need an "internalized" version of this
-;; function which deals only with trees which aren't packed
-;; into a "container" so that we're not condemned to
-;; packing a subtree into a "container" just to recursively
-;; invoke a deletion of the inorder successor key,
-;; which is one of the special cases towards the end of
-;; this function.
+(define internal-remove-from-tree
+  (lambda (ts k kcomp)
+    (letrec
+        ((rft-inner
+          (lambda (ti)
+            (cond
+             ((kcomp k (tkey ti))
+              (let
+                  ((new-lc (rft-inner (lchild ti))))
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ti)
+                   (+ 1 (max (theight new-lc) (theight (rchild ti)))) )
+                  new-lc
+                  (rchild ti) ) ) ) )
+             ((kcomp (tkey ti) k)
+              (let
+                  ((new-rc (rft-inner (rchild ti))))
+                (rebalance
+                 (mktree
+                  (make-trec
+                   (tkey ti)
+                   (+ 1 (max (theight (lchild ti)) (theight new-rc))) )
+                  (lchild ti)
+                  new-rc) ) ) )
+             (else
+              ;; The key in question, k, is in the root of tree ti.
+              (cond
+               ((and (null? (rchild ti)) (null? (lchild ti))) '() )
+               (else
+                (let*
+                    ;; Special case needed when there is not
+                    ;; a right-hand subtree from which to retrieve
+                    ;; a replacement for the key to be deleted.
+                    ;; When that happens, then new key comes from the left
+                    ;; subtree, which can only be a leaf.
+                    ((new-key
+                      (cond
+                       ((null? (rchild ti)) (tkey (lchild ti)) )
+                       (else (find-min (rchild ti)) ) ) )
+                     (new-rc
+                      (cond
+                       ((null? (rchild ti)) '() )
+                       (else (internal-remove-from-tree (rchild ti) new-key kcomp)) ) )
+                     (new-lc
+                      (cond
+                       ((null? (rchild ti)) '())
+                       (else (lchild ti)) ) ) )
+                  (rebalance
+                   (mktree
+                    (make-trec
+                     new-key
+                     (+ 1 (max (theight new-lc) (theight new-rc))) )
+                    new-lc
+                    new-rc ) ) ) ) ) ) ) ) ) )
+      (rft-inner ts) ) ) )
+     
 (define remove-from-tree
+  (lambda (tc k)
+    (tree-shell
+     (comparer tc)
+     (internal-remove-from-tree (get-tree tc) k (comparer tc)) ) ) )
+
+(define remove-from-tree-old
   (lambda (ts k)
     (letrec
         ((kt (mknode k))
@@ -558,7 +615,7 @@
                         ;; will receive the right kind of data structure.
                         ;; And this result must be unpacked with get-tree.
                         (get-tree
-                         (remove-from-tree
+                         (remove-from-tree-old
                           (tree-shell kcomp (rchild ti))
                           new-key)) ) ) )
                      (new-lc
@@ -595,43 +652,15 @@
 ;; definitions, much like code in a Haskell program (which just goes to
 ;; show the common heritage anyhow, right...)
 
-;; This concatenation operator will only work properly
-;; when (>= (theight tl) (theight tr)).
-;; But it is cheap and concise!
-;;
-;; It should not take much to generalize this into a
-;; version which allows the shorter tree to be the left-hand
-;; tree, and in which we "splice together" the shorter left-hand
-;; tree and a "left-most" subtree of the right-hand, taller tree
-;; and then splice that into the taller right-hand tree, with
-;; rebalancing cascading up to the root.
-;;
-;; Frustrating, trying to describe this stuff in such
-;; imperative, figurative terms...
-;; 
-(define concat
-  (lambda (tl tr)
-    (cond
-     ((equal? (theight tl) (theight tr))
-      (let*   ((new-key (find-min tr))
-               (new-tr (remove-from-tree tr new-key)) )
-        (rebalance
-         (mktree
-          (make-trec
-           new-key
-           (+ 1 (max (theight tl) (theight new-tr) ) ))
-          tl
-          new-tr) ) ) )
-     (else
-      (let ( (new-rc (concat (rchild tl) tr) ) )
-        (rebalance
-         (mktree
-          (make-trec
-           (tkey tl)
-           (+ 1 (max (theight (lchild tl)) (theight new-rc))) )
-          (lchild tl)
-          new-rc ) ) ) ) ) ) )
-
+;; Concatenation operations:
+; These are used by the splitting function.
+; The idea is to traverse down the left or right "spine"
+; of the taller search tree, and when we arrive at a
+; subtree which is as tall or shorter than the shorter
+; subtree, we construct a new subtree which has the
+; provided key as its root, and then that result is
+; incorporated back into the overall tree, rebalancing
+; as necessary, rather like an insert had occurred.
 (define lconcat-key
   (lambda (tl tr split-key)
     (let*
