@@ -67,8 +67,8 @@
 ; compare keys of two different trees rooted at x and y:
 ;; (define kcomp
 ;;   (lambda (x y) (< (tkey x) (tkey y))))
-(define kcomp
-  (lambda (x y) (< x y)))
+;; (define kcomp
+;;   (lambda (x y) (< x y)))
 
 ;; At present, we can store strings into an avl-tree
 ;; if we define kcomp to use the string<? function
@@ -696,7 +696,8 @@
 (define b-list-range
   (lambda (t x y)
     (letrec
-        ((lr-inner
+        ((kcomp (comparer t))
+         (lr-inner
           (lambda (ti)
             (cond
              ((null? ti) '())
