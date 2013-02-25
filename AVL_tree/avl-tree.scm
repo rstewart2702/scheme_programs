@@ -655,26 +655,26 @@
 (define b-split
   (lambda (t skey)
     (letrec
-        ((skn (mknode skey))
+        ((kcomp (comparer t))
          (b-split-i
           (lambda (t kn)
             (cond
-             ((equal? (tkey t) (tkey kn))
+             ((equal? (tkey t) kn)
               (cons
                (lchild t)
                (rchild t) ) )
-             ((kcomp (tkey kn) (tkey t))
+             ((kcomp kn (tkey t))
               (let ((sr (b-split-i (lchild t) kn) ) )
                 (cons
                  (car sr)
                  (rconcat-key (cdr sr) (rchild t) (tkey t)) ) ) )
-             ((kcomp (tkey t) (tkey kn))
+             ((kcomp (tkey t) kn)
               (let ((sr (b-split-i (rchild t) kn) ) )
                 (cons
                  (lconcat-key (lchild t) (car sr) (tkey t))
                  (cdr sr)                                   ) ) ) ) ) ) )
       (let
-          ( (result (b-split-i (get-tree t) skn)) )
+          ( (result (b-split-i (get-tree t) skey)) )
         (cons
          (tree-shell (comparer t) (car result))
          (tree-shell (comparer t) (cdr result)) ) ) )) )
@@ -685,6 +685,11 @@
 ;; partly because of the intrinsic nature of the
 ;; height-balanced tree structure.
 ;;
+(define f-compose
+  (lambda (f g) (lambda (h) (f (g h)))) )
+(define idf
+  (lambda (x) x))
+
 ;; I don't yet have a good feel for whether or not
 ;; this can decay into something akin to a linear
 ;; list scan, but a moment's reflection seems to
@@ -693,6 +698,39 @@
 ;; can be eliminated during the search for items which
 ;; fall into the range specified by x and y.
 ;;
+(define b-list-range-a
+  (lambda (t x y)
+    (letrec
+        ((kcomp (comparer t))
+         (lr-inner
+          (lambda (ti accum-lwh)
+            (cond
+             ((null? ti) accum-lwh)
+             (else
+              (let
+                  ((left-res
+                    (cond
+                     ((and (not (null? (lchild ti)))
+                           (or (kcomp x (tkey ti))
+                               (kcomp y (tkey ti))))
+                      (lr-inner (lchild ti) accum-lwh))
+                     (else idf) ) )
+                   (mid-res
+                    (cond
+                     ((and (or (kcomp x (tkey ti)) (equal? (tkey ti) x))
+                           (or (kcomp (tkey ti) y) (equal? (tkey ti) y)))
+                      (lambda (h) (cons (tkey ti) h)))
+                     (else idf) ) )
+                   (right-res
+                    (cond
+                     ((and (not (null? (rchild ti)))
+                           (or (kcomp (tkey ti) x)
+                               (kcomp (tkey ti) y)))
+                      (lr-inner (rchild ti) accum-lwh) )
+                     (else idf) ) ) )
+                (f-compose (f-compose left-res mid-res) right-res) ) ) ) ) ) )
+      ((lr-inner (get-tree t) idf) '()) ) ) )
+
 (define b-list-range
   (lambda (t x y)
     (letrec
