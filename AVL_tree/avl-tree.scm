@@ -698,14 +698,26 @@
 ;; can be eliminated during the search for items which
 ;; fall into the range specified by x and y.
 ;;
+;; This version of the range-retrieval function uses
+;; "list-construction-as-function-composition" to help
+;; guarantee that we won't need another linear pass
+;; through an assembled list, and won't need the
+;; append function to add to the list.  But overall,
+;; so many implementations of append are so darn fast,
+;; it's hard to see the difference, at least then the
+;; keys are integers.  So, the trade-off is possibly
+;; an even one, for many Scheme implementations?  Still,
+;; the append function can get expensive, and its cost
+;; may be easier to notice on a different machine or
+;; implementation?
 (define b-list-range-a
   (lambda (t x y)
     (letrec
         ((kcomp (comparer t))
          (lr-inner
-          (lambda (ti accum-lwh)
+          (lambda (ti)
             (cond
-             ((null? ti) accum-lwh)
+             ((null? ti) idf)
              (else
               (let
                   ((left-res
@@ -713,7 +725,7 @@
                      ((and (not (null? (lchild ti)))
                            (or (kcomp x (tkey ti))
                                (kcomp y (tkey ti))))
-                      (lr-inner (lchild ti) accum-lwh))
+                      (lr-inner (lchild ti)))
                      (else idf) ) )
                    (mid-res
                     (cond
@@ -726,10 +738,10 @@
                      ((and (not (null? (rchild ti)))
                            (or (kcomp (tkey ti) x)
                                (kcomp (tkey ti) y)))
-                      (lr-inner (rchild ti) accum-lwh) )
+                      (lr-inner (rchild ti)) )
                      (else idf) ) ) )
                 (f-compose (f-compose left-res mid-res) right-res) ) ) ) ) ) )
-      ((lr-inner (get-tree t) idf) '()) ) ) )
+      ((lr-inner (get-tree t)) '()) ) ) )
 
 (define b-list-range
   (lambda (t x y)
@@ -795,6 +807,18 @@
      ((and (<= x (car lst)) (<= (car lst) y))
       (cons (car lst) (list-range (cdr lst) x y)))
      (else (list-range (cdr lst) x y)) ) ) )
+
+(define list-range-1
+  (lambda (lst x y)
+    (letrec
+        ((lr-tr
+          (lambda (lst x y lr)
+            (cond
+             ((null? lst) lr)
+             ((and (<= x (car lst)) (<= (car lst) y))
+              (lr-tr (cdr lst) x y (cons (car lst) lr)) )
+             (else (lr-tr (cdr lst) x y lr) ) ) ) ) )
+      (reverse (lr-tr lst x y '())) ) ) )
 
 (define list-gen
   (lambda (n)
