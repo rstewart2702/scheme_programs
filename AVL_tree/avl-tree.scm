@@ -238,6 +238,50 @@
         (cons (tkey ts) '())
         (b-inorder (rchild ts)) ) ) ) ) )
 
+(define b-inorder-a
+  (lambda (ts)
+    (letrec
+        ((inorder-i
+          (lambda (ts)
+            (cond
+             ((null? ts) idf)
+             (else
+              (f-compose
+               (f-compose
+                (inorder-i (lchild ts))
+                (lambda (h) (cons (tkey ts) h)))
+               (inorder-i (rchild ts)) ) ) ) ) ) )
+      ((inorder-i ts) '()) ) ) )
+                
+;; This version seems to be cheaper than b-inorder-a.
+;; This version avoids adding instances of the
+;; identity function (named "idf" herein) to the
+;; resulting function.  Thus the resulting
+;; lambda-expression is cheaper to execute.
+;;
+;; It's probably cheaper also because of the little
+;; bit of "looking ahead" done by the nullity testing
+;; of the left and right subtrees.
+;;
+;; Based on gross run-time testing, using a tree filled
+;; with 500,000 integers, this version is a little faster
+;; than even the inorder traversal which uses append.
+;; And I never expected the append-based version to be
+;; particularly cheap:  it was indeed quick-and-dirty.
+(define b-inorder-b
+  (lambda (ts)
+    (letrec
+        ((inorder-i
+          (lambda (ts)
+            (let*
+                ((root-func (lambda (h) (cons (tkey ts) h)))
+                 (first-func
+                  (cond ((null? (lchild ts)) root-func)
+                        (else (f-compose (inorder-i (lchild ts)) root-func) ))) )
+              (cond ((null? (rchild ts)) first-func)
+                    (else (f-compose first-func (inorder-i (rchild ts))) ) ) ) ) ) )
+      (inorder-i ts) ) ) )
+
 (define max-path
   (lambda (ts)
     (cond
@@ -704,7 +748,7 @@
 ;; through an assembled list, and won't need the
 ;; append function to add to the list.  But overall,
 ;; so many implementations of append are so darn fast,
-;; it's hard to see the difference, at least then the
+;; it's hard to see the difference, at least when the
 ;; keys are integers.  So, the trade-off is possibly
 ;; an even one, for many Scheme implementations?  Still,
 ;; the append function can get expensive, and its cost
@@ -741,6 +785,94 @@
                       (lr-inner (rchild ti)) )
                      (else idf) ) ) )
                 (f-compose (f-compose left-res mid-res) right-res) ) ) ) ) ) )
+      ((lr-inner (get-tree t)) '()) ) ) )
+
+;; This version of b-list-range tries to avoid the
+;; use of the identity function as much as possible
+;; by "looking ahead," just as was done with the
+;; b-inorder-b function.  But rough benchmarking
+;; in guile does not show a performance edge over the
+;; b-list-range-a function, which is in turn much
+;; faster than the list-range-1 function, which is
+;; the naive "list-retrieval-by-consing-and-reversing."
+(define b-list-range-b
+  (lambda (t x y)
+    (letrec
+        ((kcomp (comparer t))
+         (lr-inner
+          (lambda (ti)
+            (cond
+             ((null? ti) idf)
+             (else
+              (let*
+                  ((left-res
+                    (cond
+                     ((and (not (null? (lchild ti)))
+                           (or (kcomp x (tkey ti))
+                               (kcomp y (tkey ti))))
+                      (lr-inner (lchild ti)))
+                     (else '()) ) )
+                   (mid-res
+                    (cond
+                     ((and (or (kcomp x (tkey ti)) (equal? (tkey ti) x))
+                           (or (kcomp (tkey ti) y) (equal? (tkey ti) y)))
+                      (lambda (h) (cons (tkey ti) h)))
+                     (else '()) ) )
+                   (right-res
+                    (cond
+                     ((and (not (null? (rchild ti)))
+                           (or (kcomp (tkey ti) x)
+                               (kcomp (tkey ti) y)))
+                      (lr-inner (rchild ti)) )
+                     (else '()) ) )
+                   (first-func
+                    (cond ((and (null? left-res) (null? mid-res)) '())
+                          ((null? left-res) right-res)
+                          ((null? right-res) mid-res)
+                          (else (f-compose left-res mid-res)) ) ) )
+                (cond
+                 ((and (null? first-func) (null? right-res)) idf)
+                 ((null first-func) right-res)
+                 ((null right-res)  first-func)
+                 (else (f-compose first-func right-res)) ) ) ) ) ) ) )
+      ((lr-inner (get-tree t)) '()) ) ) )
+
+;; Same as b-list-range-a, but uses the following functions
+;; provided in the guile implementation:
+;;   compose
+;;   identity
+;; Their meaning should be obvious...
+(define b-list-range-b
+  (lambda (t x y)
+    (letrec
+        ((kcomp (comparer t))
+         (lr-inner
+          (lambda (ti)
+            (cond
+             ((null? ti) idf)
+             (else
+              (let
+                  ((left-res
+                    (cond
+                     ((and (not (null? (lchild ti)))
+                           (or (kcomp x (tkey ti))
+                               (kcomp y (tkey ti))))
+                      (lr-inner (lchild ti)))
+                     (else identity) ) )
+                   (mid-res
+                    (cond
+                     ((and (or (kcomp x (tkey ti)) (equal? (tkey ti) x))
+                           (or (kcomp (tkey ti) y) (equal? (tkey ti) y)))
+                      (lambda (h) (cons (tkey ti) h)))
+                     (else identity) ) )
+                   (right-res
+                    (cond
+                     ((and (not (null? (rchild ti)))
+                           (or (kcomp (tkey ti) x)
+                               (kcomp (tkey ti) y)))
+                      (lr-inner (rchild ti)) )
+                     (else identity) ) ) )
+                (compose (compose left-res mid-res) right-res) ) ) ) ) ) )
       ((lr-inner (get-tree t)) '()) ) ) )
 
 (define b-list-range
