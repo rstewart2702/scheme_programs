@@ -280,7 +280,7 @@
                         (else (f-compose (inorder-i (lchild ts)) root-func) ))) )
               (cond ((null? (rchild ts)) first-func)
                     (else (f-compose first-func (inorder-i (rchild ts))) ) ) ) ) ) )
-      (inorder-i ts) ) ) )
+      ((inorder-i ts) '()) ) ) )
 
 (define max-path
   (lambda (ts)
@@ -632,10 +632,45 @@
 ; incorporated back into the overall tree, rebalancing
 ; as necessary, rather like an insert had occurred.
 (define lconcat-key
+  ;; The left-hand tree is considered to be the taller one in this case.
+  ;;
+  ;; Here's a more "operational/imperative" interpretation:
+  ;; This function recursively calculates a new left-hand tree
+  ;; from the right-child of the existing left-hand tree, in order to
+  ;; reduce the height of the left-hand tree, until we recursively reach
+  ;; a left-hand tree which has the correct height.  Then, the two are
+  ;; spliced together, with the split-key at the root, and that spliced
+  ;; result is rebalanced.  This result is returned to the caller, which
+  ;; derives a new tree from the left and right trees, with the key from
+  ;; the root of the left-hand tree as the key that falls between the
+  ;; returned right-hand tree, and the existing left-hand tree.  In other
+  ;; words, this recursively derives a new right-hand tree by travelling
+  ;; down the right-hand spine of the left-hand tree, stopping when
+  ;; the height of the right-hand subtree is "small enough, but not too
+  ;; small!"
+  ;;
+  ;; Base case:  If the right-hand tree height is greater than or equal to
+  ;; the left-hand tree height, then their concatenation is the result
+  ;; of assembling a new tree with the split-key in the new root, and the
+  ;; left tree is the left-hand tree, and the right tree is the right-hand
+  ;; tree, which must be, at most, one level taller than the left-hand
+  ;; tree.
+  ;;
+  ;; Inductive case:  If the right-hand tree is shorter than the left-tree,
+  ;; then their concatenation is the result of assembling a new tree
+  ;; by using the root of the existing left-hand tree as the root,
+  ;; and the left-child of the present left-tree as the left subtree,
+  ;; and the result of the 
+  ;; (recursive) lconcat-key call on the right subtree of the left tree,
+  ;; the right tree, and the supplied splitting key (split-key),
+  ;; as the right subtree.
+  ;;
+  ;; Will rebalancing be necessary?  Strictly speaking, probably only
+  ;; once, as is (probably) the case with insertion of a new key.
   (lambda (tl tr split-key)
     (let*
         ((height-eq (equal? (theight tl) (theight tr)) )
-         (height-gt (<      (theight tl) (theight tr)) )
+         (height-gt (<      (theight tl) (theight tr)) ) ; right-hand tree is taller?
          (new-key (cond ((or height-gt height-eq) split-key)
                          (else (tkey tl)) ) )
          (new-tr  (cond ((or height-gt height-eq) tr)
@@ -649,7 +684,30 @@
          (+ 1 (max (theight new-tl) (theight new-tr))) )
         new-tl
         new-tr ) ) ) ) )
-
+;
+; [2013-04-15 Mon]
+; Rebalancing needed only when the resulting tree grows in height by 1,
+; AND the resulting height throws the parent off-balance by 1, i.e., the
+; two siblings differ in height by 2.
+; I need to understand whether or not these operations ever need to
+; calculate the rebalance'd version of the new subtree, i.e., whether
+; or not those rebalance operations are ever needed.
+; [2013-04-29 Mon] see the commentary inside the lconcat-key function
+; for some tentative conclusions about the necessity of rebalancing,
+; and the inductive arguments for the correctness of the concatenation
+; operations.
+;
+; Some "facts" about concatentation of a shorter right-hand tree onto a
+; taller left-hand tree:
+; + In the process of traversing down the right spine of the left-hand
+;   tree, we may come to a place in which the left-hand tree is shorter
+;   than the right-hand tree.  It must be the case that "when this happens,"
+;   the left-hand tree must be 1 shorter than the right-hand tree.  Why?
+;   If we started out with AVL trees, then the "right spine" of the left
+;   tree must be a tree that is at least 1 taller than the right-hand
+;   tree.  This means that the right-child of that right spine tree
+;   could be the same height as the right tree, or one shorter.
+; 
 (define rconcat-key
   (lambda (tl tr split-key)
     (let*
