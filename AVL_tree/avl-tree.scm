@@ -368,19 +368,19 @@
               ((lc-of-rc (lchild (rchild ts)))
                (rc-of-rc (rchild (rchild ts)))
                (result-tree
-                (cond
-                 ((> (theight lc-of-rc) (theight rc-of-rc))
-                  (let
-                      ((new-rc (r-rotate rc)) )
-                    (l-rotate
+                (l-rotate
+                 (cond
+                  ((<= (theight lc-of-rc) (theight rc-of-rc))
+                   ts )
+                  ((> (theight lc-of-rc) (theight rc-of-rc))
+                   (let
+                       ( (new-rc (r-rotate rc)) )
                      (mktree
                       (make-trec
                        (tkey ts)
-                       (+ 1 (max lc-height (theight new-rc))))
+                       (+ 1 (max lc-height (theight new-rc))) )
                       lc
-                      new-rc) ) ) )
-                 ((<= (theight lc-of-rc) (theight rc-of-rc))
-                  (l-rotate ts) ) ) ) )
+                      new-rc ) )) ) ) ) )
             ;; (printf "Rebalanced to height: ~v~n" (theight result-tree))
             result-tree ) )
          ((> lc-height rc-height)
@@ -388,23 +388,22 @@
               ((lc-of-lc (lchild (lchild ts)))
                (rc-of-lc (rchild (lchild ts)))
                (result-tree
-                (cond
-                 ((> (theight rc-of-lc) (theight lc-of-lc))
-                  (let
-                      ((new-lc (l-rotate lc)) )
-                    (r-rotate
+                (r-rotate
+                 (cond
+                  ((<= (theight rc-of-lc) (theight lc-of-lc))
+                   ts )
+                  ((> (theight rc-of-lc) (theight lc-of-lc))
+                   (let
+                       ( (new-lc (l-rotate lc)) )
                      (mktree
                       (make-trec
                        (tkey ts)
                        (+ 1 (max (theight new-lc) rc-height)) )
                       new-lc
-                      rc ) ) ) )
-                 ((<= (theight rc-of-lc) (theight lc-of-lc))
-                  (r-rotate ts) ) ) )
-               )
+                      rc ) ) ) ) ) ) )
             ;; (printf "Rebalanced to height: ~v~n" (theight result-tree))
             result-tree ) ) ) )
-        (else ts) ) ) ) )
+       (else ts) ) ) ) )
 
 ;; This is the insert-with-balancing into a height-balanced binary tree:
 ;; It's puzzling to me that inserting a bunch of keys in sequential order
