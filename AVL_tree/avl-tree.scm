@@ -80,17 +80,16 @@
 
 (define t-height
   (lambda (ts) 
-    (let ((lc (lchild ts))
-          (rc (rchild ts)))
+    (let
+        ((lc (lchild ts))
+         (rc (rchild ts)))
       (cond 
-        ((and (null? lc) (null? rc)) 0) ; when both subtrees are empty, the height is 0
-        ((null? lc) (+ 1 (t-height rc)) ) ; when only the left child is empty, the height is 1 + height-of-right-child
+        ((and (null? lc) (null? rc)) 0)   
+        ((null? lc) (+ 1 (t-height rc)) ) ; when both subtrees are empty, the height is 0
         ((null? rc) (+ 1 (t-height lc)) ) ; when only the right child is empty, the height is 1 + height-of-left-child
-        (#t (max (+ 1 (t-height lc)) (+ 1 (t-height rc)))) ; this is the fully-general case, take the larger of the two heights
-        ) 
-      ) 
-    ) 
-  )
+        (else (max (+ 1 (t-height lc)) (+ 1 (t-height rc)))) ) ; this is the fully-general case, take the larger of the two heights
+      ) ) )
+
 
 ;; Lingering issues:
 ;; How in the world are we to deal with an insert operation which results 
@@ -764,11 +763,27 @@
               (cons
                (lchild t)
                (rchild t) ) )
+             ;; If the key falls to the left of the current root,
+             ;; then split the left subtree by the key, and
+             ;; concatenate together the right-hand side of the
+             ;; current root, the right-hand side of the split right
+             ;; subtree, and the splitting key.  This becomes
+             ;; the right-hand side of the split, and the left-hand
+             ;; side of the split is the left-hand tree that resulted
+             ;; from the split of the left-hand subtree.
              ((kcomp kn (tkey t))
               (let ((sr (b-split-i (lchild t) kn) ) )
                 (cons
                  (car sr)
                  (rconcat-key (cdr sr) (rchild t) (tkey t)) ) ) )
+             ;; If the key falls to the right of the current root,
+             ;; then split the right subtree by the key, and
+             ;; concatenate together the left-hand side of the
+             ;; current root, the left-hand side of the split right
+             ;; subtree, and the splitting key.  This becomes
+             ;; the left-hand side of the split, and the right-hand
+             ;; side of the split is the right-hand tree that resulted
+             ;; from the split of the right-hand subtree.
              ((kcomp (tkey t) kn)
               (let ((sr (b-split-i (rchild t) kn) ) )
                 (cons
@@ -844,6 +859,113 @@
                 (f-compose (f-compose left-res mid-res) right-res) ) ) ) ) ) )
       ((lr-inner (get-tree t)) '()) ) ) )
 
+;; Newer "cursor" functions:
+;; Trying to create a "cursor" which can be used to traverse the collection
+;; the avl-tree represents.
+;;
+;; This calls for some more abstractions than are here presently, because
+;; these ridiculous calls to cadar, etc, help to make a simple idea
+;; absolutely impenetrable.  This needs to be addressed.
+;;
+;; Plus, it'd be nice if these could somehow be expressed as "folds" or something,
+;; since it seems reasonable to expect to be able to apply a function to each
+;; item retrieved via these "cursor" structures.
+;;
+;; More than anything else, I was just trying to understand what a "zipper" is
+;; as well, and what "zippers" seem to do is similar to what I am trying to
+;; do here (except a traversal via one of these cursors is unidirectional,
+;; whereas generalized zippers are supposed to let you do bidirectional
+;; traversals.
+
+; Builds up a "forest" of trees by walking down the "left spine"
+; of the given avl tree, in this case.
+(define walk-down-left
+  (lambda
+      (ct    ; "current tree"...?
+       frst) ; "forest" of trees...?
+    (cond
+     ((null? ct) frst)
+     ((null? (lchild ct))
+      (cons (list (trec ct) (rchild ct)) frst))
+     (else
+      (walk-down-left
+       (lchild ct)
+       (cons (list (trec ct) (rchild ct)) frst)) ) ) ) )
+
+(define cursor-desc
+  (lambda (tree)
+    (let
+        ((start-forest
+          (list (list (trec tree) (rchild tree) ) ) ) )
+      (walk-down-left (lchild tree) start-forest) ) ) )
+
+(define cursor-next
+  (lambda
+      (frst)
+    (cond
+     ((null? frst) '())
+     (else
+      (walk-down-left
+       (cadar frst)
+       (cdr frst) ) ) ) ) )
+
+(define b-cur-inorder
+  (lambda
+      (tree)
+    (letrec
+        ((trav
+          (lambda (cur lst)
+            (cond
+             ((null? cur) lst)
+             (else
+              (trav (cursor-next cur)
+                    (cons (caaar cur) lst)) ) ) ) ) )
+      (trav (cursor-desc tree) '()) ) ) )
+
+
+
+;; (define cursor-next
+;;   (lambda
+;;       (frst)
+;;     (cond
+;;      ((null? frst) '())
+;;      (else
+;;       (cons
+;;        (cdar frst)
+;;        (walk-down-left
+;;         (cdar frst)
+;;         (cddr frst) ) ) ) ) ) )
+
+    ;; (cond
+    ;;  ((null? frst) '())
+    ;;  ((null? (cadar frst))
+    ;;   (cons
+    ;;    ; (caadr frst)
+    ;;    (cadr frst)
+    ;;    (walk-down-left
+    ;;      (cadadr frst)
+    ;;      (cddr frst) ) )) ) ) )
+
+;; (cond
+;;  ((null? (lchild (caar cur)))
+;;   (build-up
+;;    (cons (process-func (tkey (caar cur))) res-list)
+;;    (advance-cursor-to-next)
+;;    )
+;;   )
+;;  (else
+;;   () ) )
+
+;; (define b-asc-cursor
+;;   (lambda (t kt)
+;;     (letrec
+;;         ((kcomp (comparer t))
+;;          (ba-inner
+;;           (lambda (left-accum right-remain)
+;;             (cond
+;;              ((null? (
+      
+
 ;; This version of b-list-range tries to avoid the
 ;; use of the identity function as much as possible
 ;; by "looking ahead," just as was done with the
@@ -889,8 +1011,8 @@
                           (else (f-compose left-res mid-res)) ) ) )
                 (cond
                  ((and (null? first-func) (null? right-res)) idf)
-                 ((null first-func) right-res)
-                 ((null right-res)  first-func)
+                 ((null? first-func) right-res)
+                 ((null? right-res)  first-func)
                  (else (f-compose first-func right-res)) ) ) ) ) ) ) )
       ((lr-inner (get-tree t)) '()) ) ) )
 
