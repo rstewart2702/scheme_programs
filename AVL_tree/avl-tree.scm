@@ -1,3 +1,11 @@
+;; This is a Scheme implementation of AVL search trees.
+;; By default, this is a kind of persistent data structure,
+;; because of the way in which Scheme list structures operate.
+;;
+;; The other thing this tries to do is see how far we can push
+;; the "represent everything as a Lisp list" paradigm.
+;;
+
 (define make-trec
   (lambda (k h) (list k h)) )
 
