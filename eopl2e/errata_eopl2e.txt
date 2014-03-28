@@ -1,0 +1,694 @@
+                           E R R A T A 
+
+[t] means that this is trivial.  
+[e] means that this is an error: the original is incorrect in a way
+    that could cause confusion for the reader.
+[i] means that this is an improvement: the original is correct, but
+    the correction clarifies the text or makes an improvement.
+[r] revision, but what was there was not necessarily in error.
+
+               2 N D - P R I N T I N G   E R R A T A 
+            T O  A P P E A R  IN  3 R D - P R I N T I N G (2004)
+
+[i]Acks: Pg xvii: Added to acks in first paragraph
+"Stephanie Weirich found a subtle bug in the type inference code of
+Chapter 4."  
+[i]Acks: Pg xviii: Needed because of adding the sentence above.
+[t]Ch 1: Pg 37: Ex. 1.32: Ln -2 (: 1 0) ==> (: 0 1)
+[i]Ch 2: Pg 52: Figure 2.2: Ln 3: <var-exp> --> <identifier>
+[t]Ch 2: Pg 53: Ex 2.11: "the constants 3, *, and +" becomes
+                         "nonnegative integers and applications of primitives, such as * and +.
+[t]Ch 2: Pg 64: Ln 3: "variable" --> "symbol" 
+[t]Ch 2: Pg 64: Ln 9: "variable" --> "symbol" 
+[t]Ch 2: Pg 67: Last 3 lines of dequeue should be shifted left 2 spaces.
+[i]Ch 2: Pg 68: Ln 6:
+    "it uses amortized constant time --> 
+    "each operation uses amortized constant time"
+[e]Ch 3: Pg 105: Lns 15 and 16: p(a) ==> (p a)
+[t]Ch 4: Pg 125: Ln -5: delete "we define" and the unnecessary ","
+[e]Ch 4: Pg 128: Ln -5:, replace "and ..." with
+   and if it is given $n$ arguments of types $t_1$, \dots,
+   $t_n$, and returns a value, then the return value is of type $t$.
+[e]Ch 4: Pg 129: lines -11 to -7 should be replaced by the following.
+   Our goal is to write a procedure \f{type-of-expression} which, given
+ an expression (call it {\it exp}) and a \emph{type environment} (call
+ it \tenvnic) mapping each variable to a type, assigns to {\it exp} a
+ type $t$ with the property that:
+
+ \vbox{
+   \begin{quotation}\noindent
+     Whenever {\it exp} is evaluated in an {environment} in which
+     each variable has the type specified for it by {\it tenv}, one of
+     the following happens: (1) the resulting value has type $t$,
+     (2) the evaluation does not terminate, or (3)
+     the evaluation fails on an error other than a type error.
+   \end{quotation}
+ }
+[e]Ch 4: Pg 142: Ln 18: below horizontal, first occurrence of "listof"
+   should be "list" (Verify that Mitch added it.)
+[e] Ch 4: Pg 163: Def of check-tvar-equal-type!
+
+    Replace the definition of check-tvar-equal-type! by
+
+    (define check-tvar-equal-type!
+      (lambda (tvar ty exp)
+        (cond
+          ((tvar-non-empty? tvar)
+           (check-equal-type! (tvar->contents tvar) ty exp))
+          ((and (tvar-type? ty) (tvar-non-empty? ty))
+           (check-equal-type! tvar (tvar->contents ty) exp))
+          (else
+            (check-no-occurrence! tvar ty exp)
+            (tvar-set-contents! tvar ty)))))
+
+     and change the text on page 164 to:
+
+     The procedure \f{check-tvar-equal-type!}\tox{check-tvar-equal-type"!}
+     deals with the case of equating a type variable \tvar and a type \ty.  
+     If \tvar contains a type, then we recur on its contents, calling 
+     \f{check-equal-type!}\tox{check-equal-type"!} to equate that type to
+     \ty.  Conversely, if \ty is a tvar-type that contains a type, we recur
+     on that type.
+
+     If \tvar is empty and \ty is not a pointer to another type, we would
+     like to set the contents of \tvar to \ty, thus making them equal.
+
+[t]Ch 5: Pg 196: Ln 23: "superclass class" ==> "superclass"
+[t]Ch 5: Pg 196: Ln 30: "were" to "had been"
+[t]Ch 5: Pg 201: Ex 5.23: top line of code should be "class c1 extends object"
+[e]Ch 6: Pg 207: Ln 2: delete the 1
+[e]Ch 6: Pg 224: Ln -1 and -2, "super" and "ordinary" need to be swapped.
+[t]Ch 7: Pg 249: Figure Caption: eval-rand ==> eval-rands (verified)
+[t]Ch 7: Pg 264: Ln 2: Replace sentence by:
+                  "Then evaluate the remaining expressions and call
+   the resulting list rest.
+[i]Ch 7: Pg 297: Ln -12: Otherwise, it calls \f{match-term} to try to
+                         solve the first goal.
+                         ==>
+                         Otherwise, it applies the current substitution
+                         to the first goal. It then tries to solve
+			 the resultant goal in \f{match-term}. (done)
+[i]Ch 7: pg 298: Ln 5: (car goals) ==> (subst-in-term (car goals) subst) 
+                 Ln 22: becomes (unify-term head goal) 
+                        and the line is moved up.
+                 Ln -3 It then applies the current substitution to the 
+                       goal term and attempts to unify the result with 
+                       the head of the freshly instantiated rule. 
+                       ==>
+                       It then attempts to unify the goal with the head
+                       of the freshly instantiated rule.
+[n]Ch 7: pg 299: Necessary for third printing.
+[t]Ch 8: pg 326: Ln 9: add1((depth cdr(s))) ==> (depth cdr(s))
+[t]Ch 8: Pg 326: Exercise 8.19.2: 
+     "instead of symbols." --> "instead of symbols,"
+[t]Appendix A: Page 347
+Sentence is added after 6th bullet.
+"The examples above illustrate the precedence of the different
+operations.  Thus, $ab^* \cup cd$ means $(a(b^*)) \cup (cd)$."
+Also, The two paragrahs at the bottom of the page have been
+merged and the last sentence "Using Scheme spares us these
+annoyances" has been deleted.  These last two changes were to
+maintain pagination.
+
+               1 S T - P R I N T I N G   E R R A T A
+            T O  A P P E A R  I N  2 N D -  P R I N T I N G
+
+---------------------------------------------------------------
+[t]Acks: Pg xvii: Add two names at the end of the first paragraph.
+---------------------------------------------------------------
+[t]Ch1 Pg 11: Ln -7: "In the previous example," --> On page 10,"
+[t]Ch1 Pg 12: Delete 2nd para after display.
+[t]Ch1 Pg 12: 3rd papr after display: delete "typical kind of"
+[t]Ch1 Pg 14: Definition of nth-elt: add .~% before closing double quote.
+[t]Ch1 Pg 14: Para -1: Ln -4: Insert sentence before "After"
+            A ~% is treated as a new line.
+[i]Ch1 Pg 27: Exercise 1.18.2: Ln 9 and Ln 11 become
+      (compose (compose car cdr) cdr)
+      (compose (compose (compose (compose car cdr) car) cdr) cdr)
+[t]Ch1 Pg 37: Add "; 1998" to Sussman and Steele reference.
+[t]Ch1 Pg 38: due to the change on page 37.
+---------------------------------------------------------------
+[t]Ch 2: Pg 40: The n's on the lhs of the display are in the wrong font.
+[t]Ch 2: Pg 41: The n on the rhs of the display under Unary
+                   Representation is in the wrong font.
+[t]Ch 2: Pg 44: Ln -12: rightmost * should be a +.
+[t]Ch 2: Pg 45: Ln 8: Delete space between "description" and "-"
+[t]Ch 2: Pg 51: Delete last sent of first paragraph.
+[t]Ch 2: Pg 53: exercise 2.10: Replace 1st sentence of paragraph
+   following definition of fresh-id by
+   "Complete the implementation of fresh-id by defining all-ids,
+    which finds all the symbols in a lambda calculus expression
+    (page 49).
+[t]Ch 2: Pg 53: exercise 2.11: 1st para becomes:
+   Extend the datatype definition on page 48 to
+     add the constants 3, *, and +.  Then extend
+     parse-expression and unparse-expression to 
+     support this enhancement.
+[i]Ch 2: Pg 54: exercise 2.11: Lns 9-10 are replaced by
+             (lambda-exp (id body)
+               (if (eqv? id subst-id)
+                 exp
+                 (lambda-exp id (subst body))))
+[i]Ch 2: Pg 58: Ln 24: Replace 
+    "those we are about to describe" by
+    "those we describe in sections 2.3.3 and 2.3.4."
+[i]Ch 2: Pg 58: Move paragraph at the bottom of page to before exercise 2.15.
+[i]Ch 2: Pg 59: <env-exp> --> <env-rep> twice.
+[t]Ch 2: Pg 61: Ln 1: "3. Define the observers (i.e., apply-procedures) for"
+                instead of 
+                      "3. "Define the apply -procedure for"
+[i]Ch 2: Pg 62: in definition of apply-env
+                (let ((pos (list-find-position sym syms))) ...) -->
+                (let ((pos (rib-find-position sym syms))) ...)
+[i]Ch 2: Pg 62: add (define rib-find-position list-find-position) below apply-env
+[i]Ch 2: Pg 62: insert "We replace \f{list-find-position} by \f{rib-find-position} 
+                        to emphasize this new representation."
+[i]Ch 2: Pg 63: in definition of apply-env
+                (let ((pos (list-find-position sym syms))) ...) -->
+                (let ((pos (rib-find-position sym syms))) ...)
+[i]Ch 2: Pg 63: 1st sent. of exercise 2.23 becomes
+  A simpler representation of environments would be a single
+  rib consisting of a list of symbols and a list of values.
+[i]Ch 2: Pg 64: Exercise 2.24 has been revised to 
+   Define a substitution to be a function from the set of Scheme 
+   symbols to the set of terms (exercise 2.13).  The interface 
+   for substitutions consists of (empty-subst), which maps each 
+   symbol to the corresponding var-term (sometimes referred to 
+   as its trivial association); (extend-subst i t s), which 
+   returns a new substitution like s, except that symbol i is 
+   mapped to term t; and (apply-subst s i), which returns the 
+   value of symbol i in substitution s. Implement the data type 
+   of substitutions with both a procedural representation and an 
+   abstract syntax tree representation.  Then implement a procedure
+   subst-in-term that takes a term and a substitution and walks 
+   through the term replacing each variable with its association 
+   in the substitution, much like the procedure subst of section 1.2.2.  
+   Finally, implement subst-in-terms that takes a list of terms.
+[i]Ch 2: Pg 64: Last sent of exercise 2.25 is replaced by
+  "There may be many such unifiers. If so, there will always 
+   be one that is the most general."
+[t]Ch 2: Pg 67: Lns 10-26: Indent one space right; Lns 27-29: one space left.
+[i]Ch 2: Pg 68: Lns 5-6: Replace 1st sent. with.
+ "The code in figure~\ref{fig:queue-adt} has a useful but non-obvious
+   property: it uses amortized constant time."
+[t]Ch 2: Pg 68: Ln -9: Replace '"consconstructs' with 'constructs'.
+[t]Ch 2: Pg 68: Ln -5 add "; 1998" to Reynolds 1972 reference.
+---------------------------------------------------------------
+[t]Ch 3: Pg 72: exercise at the bottom of page:
+       "Cosider" --> "Consider" and "example" --> "expression"
+[e]Ch 3: Pg 76: Ln 9 of grammar-3-1:  (id) --> (identifier)
+[t]Ch 3: Pg 76 (code for scanner should be in eopltt.)
+[e]Ch 3: Pg 77: Ln 10 of Figure 3.4 should be
+            (program-to-list (scan&parse "add1(2)"))
+[t]Ch 3: Pg 81: exercise 3.11: change 1st sentence to
+   Add numeric equality, zero-testing, and order predicates equal?,
+    zero?, greater?, and less? to the defined language's
+    set of primitive operations.
+[t]Ch 3: Pg 101: exercise 3.37: Ln -2: "Why" --> "In what way"
+[t]Ch 3: Pg 102: exercise 3.38: changes to
+   "What is the constructor in the interface for references?"
+[t]Ch 3: Pg 105: Ln 7: Scheme array --> Scheme vector
+[t]Ch 3: Pg 106: Exer: 3.45: "special form" ==> "form"
+[e]Ch 3: Pg 108: Ln 15: change store to new-store
+        was (an-answer 1
+              (extend-store (apply-env env id) val store))
+        becomes
+            (let ((c (apply-env env id)))
+              (an-answer 1 (extend-store c val new-store)))
+[t]Ch 3: Pg 117: Exercise 3.57 becomes a one star and
+    If the sixth line of \f{eval-thunk}
+      (figure 3.20) were deleted, what kind of interpreter would we get?
+[t]Ch 3: Pg 117: delete "call-by-name and" from figure caption.
+[t]Ch 3: Pg 118: delete "call-by-name and" from figure caption.
+[t]Ch 3: Pg 120: 6 sets of braces ({,}) are too large.
+[t]Ch 3: Pg 121: (braces too large on compound statement.
+[i]Ch 3: Pg 123: last full line should be 
+   (extend-env ids (map (lambda (id) 0) ids) env)))
+   instead of (extend-env ids ids env))).
+----------------------------------------------------------------
+[t]Ch 4: Pg 125: Ln 2: italic etc --> roman etc.
+[t]Ch 4: Pg 130: Just before first display "tenv:" becomes
+    "tenv.  Using the <<exp>> notation of section 3.5, we write"
+[t]Ch 4: Pg 131: Ln -13 -10 -6 -4 "bound variables" --> "formal parameters"
+[t]Ch 4: Pg 132: Exercise 4.1 is replaced by
+   Using the rules of this section, write derivations that assign types
+   for proc (x) x and proc (x) proc (y) (x y).  Use the rules to
+   assign at least two types for each of these terms.  Do they have the
+   same types?
+[t]Ch 4: Pg 132: Ln -7 "bound variables" --> "formal parameters"
+[i]Ch 4: Pg 135: Ln 3: (or (equal? t1 t2) --> (if (not (equal? t1 t2))
+   then shift left two spaces the next 5 lines.
+[t]Ch 4: Pg 138: Ln 3 & 8: tenv-for-rands --> tenv-for-body
+[t]Ch 4: Pg 141: Exercise 4.7: Lns 1, 2, 4, 16, and 17 "(pair" => "(pairof"
+      At the end of the exercise add:
+     Note: in SLLGEN, the production for \f{pair-type-exp} must be written as
+     (type-exp ("(pairof" texp texp ")") pair-type-exp) to avoid an LL(1)
+     conflict with \f{proc-type-exp}.
+[e]Ch 4: Pg 142: Exercise 4.8: Ln 1: "list type" --> "listof type"
+                 Lns 2, 4, 18, 20, 21, 22, 24 "(list" --> "(listof" 
+      Insert new sentence at Ln -5:
+        "Use a trick similar to the one in exercise 4.7 to avoid
+	conflict with \f{proc-type-exp}."
+[t]Ch 4: Pg 152: Exercise 4.11: expand-tenv --> extend-tenv
+[e]Ch 4: Pg 153: Ln 3: Ln 6: 1 --> true and 0 --> false
+[e]Ch 4: Pg 153: Ln 14: Ln 17: 1 --> true and 0 --> false
+[e]Ch 4: Pg 153: Ln 22: Ln 25: 1 --> true and 0 --> false
+[t]Ch 4: Pg 155: Ln 5: Delete two spaces before "type?"
+[i]Ch 4: Pg 157: Lns 10 through Ln 28
+Finally, when typing a proc expression
+proc(t_1 x_1 ... t_n x_n) exp in tenv, we must have
+(type-of-expression <<proc (x_1 ... x_n) exp>> tenv) =
+(t_1 * ... * t_n
+ ->
+ (type-of-expression <<exp>> [x_1 = t_1, ..., x_n = t_n]tenv))
+
+So to deduce the type of an expression, we introduce a type
+variable for each occurrence of ? and for each
+application, and write out an equation for each compound expression
+using the rules above.  Since we type each subexpression in exactly
+one type environment, we can write exactly one equation for each
+compound expression, and we don't need to worry about the different
+values of tenv.
+
+Then all we have to do is solve the resulting equations for these type
+variables. The code solves these equations by calling
+check-equal-type!, but we first consider how to solve these
+equations by hand.
+
+As an example, consider proc(? f, ? x)(f +(1,x) zero?(x)).   
+Let's start by making a table of all the missing type expressions ?
+and applications in this expression, and assigning a type
+variable to each one.  Here we write f to indicate the ?
+associated with the bound variable f.
+[i]Ch 4: Pg 159: Ln 7: added "(See exercise 2.25.)"
+[i]Ch 4: Pg 159: Ln 9: proc (f, x) ... --> proc(? f, ? x) ...
+[i]Ch 4: Pg 159: Lns: Starting at "Let us consider ..." as Ln 1:
+   2 (twice), 5 (twice), 9. 10, 12, 14 "(list" --> "(listof"
+[i]Ch 4: Pg 160: Exercise 4:16
+   Ln 1: is replaced by "Consider the following examples."
+   Ln -2 to end of exercise is replaced by:
+     First, insert ? in front of each formal parameter.  Then,
+     solve the resultant type equations.  Treat add1 as if it 
+     were a procedure of type (int -> int) and + as if it were 
+     a procedure of type (int * int -> int).
+[e]Ch 4: Pg 164: Next-to-the-last para: replace everything after the
+                            first two sentences by this:
+
+If \ty is a procedure type, then we recur on the argument types and
+the result type.  If \ty is itself a type variable, then we check to
+see if it contains a type.  If it does, then we recur on its contents.
+Otherwise, we check whether it is the same variable as \tvar.  If it
+is, an error is reported; if not, the procedure returns with an
+unspecified value. (See figure~\ref{fig:checknoocc}.)
+
+[e]Ch 4: Pg 165: the tvar-type clause in check-no-occurrences!
+    is changed to this:
+
+             (tvar-type (num vec)
+               (if (tvar-non-empty? ty1)
+                 (loop (tvar->contents ty1))
+                 (if (eqv? tvar ty1)
+                   (raise-occurrence-check tvar ty exp))))
+
+[i]Ch 4: Pg 166: because the paragraph above was longer than
+    the one it replaced, we ended up moving two exercises to this
+    page.  (No real change, though) and added a new exercise:
+The procedure \f{check-equal-type!}\ attempts to
+unify its arguments $t_1$ and $t_2$, much like the procedure
+\f{unify-term} in exercise~\ref{exer:unify}.  In
+\f{check-equal-type!}, the substitution is represented by the contents
+of the type variables.  Rewrite \f{check-equal-type!}\ to represent
+    the substitution explicitly, in the style of exercise~\ref{exer:unify}.
+The resulting version of \f{check-equal-type!}\ should not use any side
+effects. 
+[t]Ch 4: Pg 167: added because of the new exercise.
+------------------------------------------------------------------------
+[t]Ch 5: Pg 172: Ln -10: "Thus use" --> "Use"
+[i]Ch 5: Pg 181: in definition of eval-program : (init-env) --> (empty-env)
+[e]Ch 5: Pg 192: in code for elaborate-class-decls!
+   Add the line (initialize-class-env!) before (for-each ...).
+[i]Ch 5: Pg 192: Ln -3 "Here the roll-up operations" -->
+                       "Here the field roll-ups"
+[i]Ch 5: Pg 196: in code for merge-methods
+   "(if overriding-method ...)" --> "(if (method? overriding-method) ...)"
+[i]Ch 5: Pg 199: Exercise 5.11: Ln 1:
+    instanceof(exp,class-name) --> instanceof exp class-name
+[i]Ch 5: Pg 200: Revised exercise 5.14
+   added "=" to the right of "id" in grammar of fieldset.
+[i]Ch 5: Pg 200: Revised exercise 5.16
+  "Add expressions \f{superfieldref} {\it
+   field-id} and \f{superfieldset} {\it field-id} = {\it exp} that
+   manipulate the fields of \f{self}. Remember \f{super} is static."
+[t]Ch 5: Pg 203: Exercise 5.30: "method vector" --> "method table"
+--------------------------------------------------------------------------
+[t]Ch 6: Pg 206: Ln -16 Delete the sentence
+   "This restriction can be enforced by a run-time check 
+    whenever a new object is created."
+[t]Ch 6: Pg 207: Ln 2: "method" --> "abstractmethod" (and delete the 1)
+[e]Ch 6: pg 211: corrected definition of is-subclass?
+    (define is-subclass?
+      (lambda (name1 name2)
+        (or (eqv? name1 name2)
+         (and (not (eqv? name1 'object))
+           (is-subclass? (class-name->super-name name1) name2)))))
+[i]Ch 6: Pg 211: add a new first bullet: "send a message to a non-object,"
+[i]Ch 6: Pg 212: Ln 13: add "the value produced by" before "each".
+[i]Ch 6: Pg 215: last paragraph
+  Delete ", since the ordinary class environment does not exist"
+  Add: "using the procedure \f{ensure-no-duplicates} to check that there 
+         are no duplicate declarations in \f{m-decls}, and"  
+  Just before: "using the procedure \f{statically-roll-up-method-decls}
+[i]Ch 6: Pg 216: Ln 21: m-decls -->
+           (ensure-no-duplicates m-decls class-name)
+[t]Ch 6: Pg 217: in code for statically-roll-up-method-decls.
+      delete self-name as argument to call of
+      of method-decl-to-static-method-struct.
+[i]Ch 6: Pg 218: in code for method-decl-to-static-method-struct 
+      delete self-name as a formal parameter. (see corr. Pg. 217)
+[i]Ch 6: Pg 219: Lns 32,33: Wrap each in (type-to-external-form ...).
+[i]Ch 6: Pg 220: delete "specifier" as a formal parameter in the
+      definition of typecheck-method-decl!.
+[t]Ch 6: Pg 221: "~% --> " (remove the ~% from front of error
+    message in check-is-subtype!)
+[t]Ch 6: Pg 223: Ln 13 and 14 were
+   this:
+     "Wrong number of arguments in expression ~s:"
+     " ~%expected ~s~%got ~s")
+   and become this:
+     "Wrong number of arguments in expression ~s:~%"
+     "expected ~s~%got ~s")
+[t]Ch 6: Pg 225: in Ln 9 of type-of-method-app-exp was
+   this:
+    "~%Can't send message to non-object ~s in ~%~s"
+   and becomes this:
+    "Can't send message to non-object ~s in ~%~s"
+[t]Ch 6: Pg 226: Lns 8 and 11 of type-of-instanceof-exp were
+   this:
+     "~%Unknown class ~s in ~%~s" name exp)))
+     "~%~s not an object type in ~%~s" ty exp)))))
+   and become this:
+     "Unknown class ~s in ~%~s" name exp)))
+     "~s not an object type in ~%~s" ty exp)))))
+[t]Ch 6: Pg 227: Lns 20 and 25 of type-of-method-app-or-super-call were
+   this:
+     "~%Super call on abstract method ~s"
+     "~%Class ~s has no method for ~s in ~%~s"
+   and become this:
+     "Super call on abstract method ~s "
+     "Class ~s has no method for ~s in ~%~s"
+[t]Ch 6: Pg 228: in code for type-of-cast-exp name1 is swapped with name2.  
+[e]Ch 6: Pg 228: Ln 11: ty --> name1
+[t]Ch 6: Pg 228: Lns 10 and 14 of type-of-cast-exp was
+   this:
+     "~%~s incomparable with ~s in ~%~s"
+     "~%~s not an object type in ~%~s"
+   and become this:
+     "~s incomparable with ~s in ~%~s"
+     "~s not an object type in ~%~s"
+[t]Ch 6: Pg 228: Ex. 6.11: Next-to-the-last sentence:
+             "pair types" --> "pair of types"
+[t]Ch 6: Pg 230: Ln 2: "method vector" --> "method table"
+[t]Ch 6: Pg 230: Ln 5 after code display: "vector" --> "table"
+[t]Ch 6: Pg 231: Ln 3: "sytnax" => "syntax"
+[t]Ch 6: Pg 234: Lns 22, 30, 31 of translation-of-method-app-exp were
+   this:
+     "~%Shouldn't have gotten here: Class"
+     "~%Shouldn't have gotten here:"
+     " Can't send message to non-object"
+   and become this:
+     "Shouldn't have gotten here: Class "
+     "Shouldn't have gotten here: "
+     "Can't send message to non-object"
+[t]Ch 6: Pg 236: Ln 17 of translation-of-instanceof-exp was
+   this:
+     "~%Shouldn't have gotten here:"
+   and becomes this:
+     "Shouldn't have gotten here:"
+[t]Ch 6: Pg 237: caption change: "Translating of cast" --> "Translating cast"
+[t]Ch 6: Pg 237: Lns 15, 16, and 17 of translation-of-cast-exp were
+   this:
+     "~%Shouldn't have gotten here:"  
+     " ~s incomparable with ~s in ~%~s")
+     "~%Shouldn't have gotten here:"
+   and become this:
+     "Shouldn't have gotten here: "
+     "~s incomparable with ~s in ~%~s")
+     "Shouldn't have gotten here: "
+----------------------------------------------------------------------
+[t]Ch 7: Pg 258: Ln -1: "languages," --> language implementations,"
+[t]Ch 7: Pg 259: Ln -12: languages" --> "implementations of such languages"
+[t]Ch 7: Pg 259: Ln -9: "languages" --> "language implementations"
+[i]Ch 7: Pg 276: Exercise 7.22 is extended to become
+   Translate the interpreter of this section into
+   an imperative language.  Do this three times: once using 0-argument
+   procedure calls in the host language, once replacing each 0-argument
+   procedure call by a goto, if it supports gotos, and once using
+   a switch statement inside a loop.  How do these
+   alternatives perform as the computation gets longer?
+[t]Ch 7: Pg 277: Ln 1: "languages" --> "language implementations"
+[t]Ch 7: Pg 277: Ln 1: 260 --> 259.
+[i]Ch 7: Pg 277: Added one sentence:
+    Utilize the fact that \f{apply-cont} is already a 0-argument 
+    procedure, so there is no need to add an additional 
+    \f{(lambda () \dots)} as in figure~\ref{fig:trampoline}.
+[t]Ch 7: Pg 279: Ln 11: "Error" --> "Exception"
+[e]Ch 7: Pg 281: 
+    Ln 6: (eval-expression exp1 [n=1,l=(2 3)]env0 cont0)
+    Ln 10:  where env2 = [loop=(closure (l) exp2 env2)][n=1,l=(2 3)]env0
+    Ln 18, 29: conditional --> conditionals
+    Ln 31, 34: wrap with (prim-args-cont <<add1>> ...)
+[r]Ch 7: Pg 284-285: 
+    Replace all but the first two paragraphs of page 284 and the
+    last two lines of page 285 with the following.
+
+A thread is a computation in progress.  There will be two kinds of
+threads: runnable threads and completed threads.  We represent a
+runnable threads as a 0-argument procedure that returns a thread, and
+a completed thread as an expressed value.  When a thread comes to the
+end of its continuation, it will return the next runnable thread from
+the ready queue if possible, so a thread will return a completed
+thread only once, when there are no more threads to run.
+
+The basic constructor on threads is make-thread, which builds a
+runnable thread.  The procedure step-thread takes a runnable thread,
+runs the thread for one step, and returns the resulting thread.  We
+will also need the tester completed? that checks to see if a thread is
+completed.
+
+(define make-thread (lambda (proc) proc))
+
+(define step-thread
+  (lambda (runnable-thread) (runnable-thread)))
+
+(define completed?
+  (lambda (thread) (not (procedure? thread))))
+
+The ready queue is a global data structure with three operations:
+initialize-ready-queue, which initializes the queue to empty;
+place-on-ready-queue, which places a runnable thread on the ready
+queue, and get-next-from-ready-queue, a 0-argument procedure that
+removes a thread from the ready queue and returns it.  If the ready
+queue is empty, then the contents of the-final-answer, which will
+always be a non-runnable thread, is returned.  We create the ready
+queue using the queue interface of section 2.4; we omit
+the definitions of initialize-ready-queue and place-on-ready-queue, 
+which are routine.
+
+(define the-ready-queue (create-queue))
+
+(define get-next-from-ready-queue
+  (let ((empty? (queue-get-empty?-operation the-ready-queue))
+        (dequeue
+          (queue-get-dequeue-operation the-ready-queue)))
+    (lambda ()
+      (if (empty?) the-final-answer (dequeue)))))
+
+Threads are scheduled for execution by a scheduler. The scheduler
+takes a positive integer and a runnable thread, and returns the final
+value of the computation.  The integer specifies the number of steps
+in a time slice.  The runnable thread is immediately placed on the
+ready queue.  The procedure then enters an inner loop with two
+arguments: the thread to be run (initialized by taking a thread from
+the ready queue) and the number of ticks left in the time slice
+(initialized to the quantum).  If the thread is completed, it must be
+the case that the computation has finished, and the thread is the
+final value of the entire computation.  Therefore this completed
+thread, an expressed value, is returned.  Otherwise the thread is
+runnable.  If there are no ticks left in the time slice, schedule is
+called again, which puts this runnable thread back on the ready queue
+and continues the computation.  If there are ticks left, the inner
+loop recurs, calling step-thread to advance the thread by one step and
+decrementing the number of ticks remaining.
+
+(define schedule
+  (lambda (quantum runnable-thread)
+    (begin
+      (place-on-ready-queue runnable-thread)
+      (let timer-loop
+        ((thread (get-next-from-ready-queue))
+         (ticks quantum))
+        (cond
+          ((completed? thread) thread)
+          ((zero? ticks) (schedule quantum thread))
+          (else
+            (timer-loop (step-thread thread) (- ticks 1))))))))
+
+[r]Ch 7: Pg 287: Ln 14: rhs of = becomes
+   (make-thread
+      (lambda () (get-next-from-ready-queue)))
+[r]Ch 7: Pg 287: Ln 15-18: delete them.
+[r]Ch 7: Pg 287: Ln 24: insert before Ln 24:
+   It also leaves its answer in the-final-answer, to become the 
+   final answer of the computation.
+[r]Ch 7: Pg 287: Ln -9: rhs of = becomes
+= (make-thread
+    (lambda ()
+      (begin
+        (eopl:printf "final answer is: ~a~%" val)
+        (set! the-final-answer val)
+        (get-next-from-ready-queue))))
+[t]Ch 7: Pg 287: Next to the last line: pgm5-1 --> pgm7-5-1.
+[t]Ch 7: Pg 288: 1st para: 
+       pgm5-2 --> pgm7-5-2
+       pgm5-3 --> pgm7-5-3
+       in exercise 7.3.3 pgm5-3 --> pgm7-5-3
+[r]Ch 7: Pg 288: Exercise 7.36 (changed)
+  Represent a thread as a data structure containing
+  either a 0-argument procedure or an expressed value.  
+  Then modify step-thread to check to see that its 
+  argument is a legal thread.
+[t]Ch 7: Pg 289:  Titles of programs changed
+       pgm5-1 --> pgm7-5-1
+       pgm5-2 --> pgm7-5-2
+       pgm5-3 --> pgm7-5-3
+[t]Ch 7: Pg 290: Lns 1, 4, and 7
+       pgm5-1 --> pgm7-5-1
+       pgm5-2 --> pgm7-5-2
+       pgm5-3 --> pgm7-5-3
+[e]Ch 7: Pg 293: v --> val in the error messages 
+              of release-cont and acquire-cont.
+[i]Ch 7: Pg 298: In the definition of match-terms-against-rule, the first
+      argument to unify-term should be head, not (subst-in-term head subst),
+      although it is not an error, just less efficient, both
+      conceptually and in terms of execution.
+[i]Ch 7: Pg 299: 
+      "It then applies the current substitution to the goal term and
+    the head of the freshly instantiated rule, and attempts to unify
+    them."  --> (because of the fix on Pg 299)
+      "It then applies the current substitution to the goal term,
+     and attempts to unify the result with the head of the freshly 
+     instantiated rule."
+[t]Ch 7: Pg 300: exercise 7.53.  Add period after unify-term.
+                exercise 7.54   Replace last "?" by a period.
+                exercise 7.55   numeric valued --> numeric-valued
+------------------------------------------------------------------------
+[e]Ch 8: Pg 305: Revised Exercise 8.5
+     Extend the description on page 303 to include
+     the expression letinorder x1 = e1 x2 = e2
+     in e3.  Here the scope of x1 is e2 and e3, and the scope
+     of x2 is e3, like the let* of Scheme.
+[t]Ch 8: Pg 308: Ln 9: "calls" --> "names"
+[e]Ch 8: Pg 311: Last line: fourth --> fifth
+[t]Ch 8: Pg 312: Ln -4: "call --> "name"
+[t]Ch 8: Pg 313: Ln 13: "call" --> "name"
+[t]Ch 8: Pg 313: Ln 14: "call"  --> "name"
+[t]Ch 8: Pg 313: Ln -1(twice): "call" --> "name"
+[e]Ch 8: Pg 316: The if expression is simple after the
+     first step, so since k is a variable, we must use C_simple-var.
+     It changes all but the first three lines of Figure 8.4
+[e]Ch 8: Pg 318: Ln 1: (C_simple-var) --> (C_app)
+[e]Ch 8: Pg 319: Ln 8: 307 --> 308
+[t]Ch 8: Pg 321: Ln -11: Replace "several times" with "twice".
+[t]Ch 8: Pg 326: Exercise 8.19.2 first sentence changed to:
+  This procedure takes an n-list, like an s-list (page 5), but 
+  with numbers instead of symbols, and a number n and returns 
+  the first number in the list (in left-to-right order) that 
+  is greater than n.
+[e]Ch 8: Pg 331: Ln -10: "in section 2.3.2 --> "earlier"
+[t]Ch 8: Pg 333: Ln: last line of letrec rule. (font size in rhs rule)
+[t]Ch 8: Pg 335: Ln: 4 (font size in rhs rule)
+[t]Ch 8: Pg 337: Ln 2: 
+    another type expressions --> another typed expression
+[i]Ch 8: Pg 338: redefinition of cps-of-let-exp along
+     with a definition of cbindk that it uses:
+
+(define cps-of-let-exp  
+  (lambda (ids rands body k)
+    (let ((cont-exp
+            (let ((v-id (gensymbol "v")))
+              (proc-exp (list v-id)
+                (k (var-exp v-id))))))
+      (cbindk (cps-of-rands rands
+                (lambda (rands-res)
+                  (let-exp ids rands-res
+                    (cps-of-tail-pos body))))
+        cont-exp))))
+
+(define cbindk
+  (lambda (exp cont-exp)
+    (let-exp (list k-id) (list cont-exp) exp)))
+
+[t]Ch 8: Pg 339: Second and third bullet on page. (font size in rhs rule)
+[t]Ch 8: Pg 339: Ln -8: "calls" --> "names"
+[t]Ch 8: Pg 340: Second and third bullet on page
+               and K in setc expression on the first line following
+	       that equation. (font size in rhs rule)
+
+[e]Ch 8: Pg 341: Ln -6: setc x = v6 --> setc x v6
+[t]Ch 8: Pg 341: K on rhs of equation on second bullet on page
+                 and on K in the derefc expresion on the first
+                 line following that equation. (font size in rhs rule)
+[t]Ch 8: Pg 343: K on rhs of first equation; S_1 and S_2 on rhs 2nd
+                  equation. (font size in rhs rule)
+[t]Ch 8: Pg 343: Ln -2: "one subexpression --> "two subexpressions".
+---------------------------------------------------------------
+[t]App A: Pg 347  Ln -9 "is be" --> "is"
+[t]App A: Pg 348  Ln 1 of grammar: Braces too large
+[e]App A: Pg 349: Ln 13: surround line by left and right brace.
+[t]App A: Pg 349: font size for scanner-spec-a is too large
+[e]App A: Pg 350: Ln 5: The braces around the outside should be parentheses.
+[e]App A: Pg 351: Ln 12: first "" --> "{" and second "" --> "}"
+[t]App A: Pg 354: Ln 1: drop both apostrophes
+[e]App A: Pg 354: Ln 4: Replace "begin" by "{" and "end" by "}".
+[t]App A: Pg 354: Ln 7: Braces too large.
+[e]App A: Pg 354: Ln 23: surround expression (in double quotes) by { and }.
+[e]App A: Pg 355: Ln 11: "in z)" --> "in z" (drop ")" before double quote.
+[t]App A: Pg 355: Ln 3 of grammar-a4, (Braces too large)
+[t]App A: Pg 356: Ln 4, Ln 6, Ln 11, and Ln 13, grammar-a5 (Braces too large)
+[t]App A: Pg 356: Midpage: "We will occasionally use 
+                    nested arbno's and separated-list's"
+                    --> just drop both apostrophes.
+[t]App A: pg 357: Ln 7: Braces too large.
+
+[t]Bib: Pg 362: Clinger, Hartheimer, Ost Reference: delete "Journal of"
+[t]Bib: Pg 365: Scott's reference should be "Pragmatics" not "Semantics"
+[t]Bib: Pg 366: Add "Reprinted as (Sussman & Steele, 1998)."
+[t]Bib: Pg 366: New ref: 
+   Sussman, Gerald J. & Steele, Jr., Guy L. 1998. SCHEME: An Interpreter
+   for Extended Lmabda Calculus. Higher-Order and Symbolic Computation.
+   11(4), 405-439.
+------------------------------------------------------------------------
+[t]Index: Pg 368: amortized linear --> amortized constant
+          Pg 369: under bound : variable (drop 131)
+          Pg 370: completed
+                    thread, 284 (added)
+          Pg 370: completed?, 284 (added)
+          Pg 372: delete "define" (line 1)
+                : delete "special form, 104"
+          Pg 372: deref, 101, 110, 116 --> 101, 111, 116
+          Pg 374: expval?, 110 --> 111
+          Pg 375: formal parameter ... 131
+          Pg 378: listof, 142, 159 (added)
+          Pg 380: pairof, 141 (added)
+          Pg 380: pair-type, 141 --> pair-type-exp, 141
+          Pg 382: ref-to-direct-target?, 110 --> 111 
+          Pg 383: run-thread, 284, 288 (dropped)
+          Pg 383: runnable?, 284 (dropped)
+          Pg 383: scheduler, 284 ==> scheduler, 285
+          Pg 384: setref!, 101, 110, 116 --> 101, 111, 116
+          Pg 384: delete entry "special form"
+          Pg 385: step-thread, 284, 288 (added)
+          Pg 386: under thread: completed, 284 (added)
+          Pg 386: under time : amortized linear --> amortized constant
+          Pg 387: under type-exp: pair-type --> pair-type-exp
+
