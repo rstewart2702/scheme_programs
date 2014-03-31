@@ -689,7 +689,6 @@
                    ;; and the id's which occur in the subst-exp,
                    ;; then we must merely recursively substitute, as usual.
                    ((and (null? iset) (not (occurs-bound? subst-id exp)))
-                    (display "TAKING FIRST BRANCH...")(display "\n")
                     (lambda-abst ids (subst body)))
                    ;; Otherwise, we must perform a set up substitutions on the lambda's body:
                    ;; replace every occurrence of a variable in the ids with a new counterpart:
@@ -704,9 +703,6 @@
                     ;; subst-id.
                     (let
                         ((fresh-list (fresh-ids body ids)) )
-                      (display "SECOND-BRANCH...")(display "\n")
-                      (display ids)(display "\n")
-                      (display fresh-list)(display "\n")
                       (lambda-abst
                        (replace-ids ids fresh-list)
                        (subst (lambda-subst-helper body fresh-list)) ) ) ) ) ) )
