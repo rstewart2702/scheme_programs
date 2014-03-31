@@ -668,29 +668,45 @@
                       (else exp)))
                (lambda-abst
                 (ids body)
+                ;; Originally, I had thought that there would be
+                ;; unnecessary variable renaming, because
+                ;; a bound variable in the exp would be renamed
+                ;; if it happens to show up in the se-ids.
+                ;; But this renaming is necessary if the subst-exp
+                ;; happens to be an expression which contains bound
+                ;; occurrences of the subst-id, yes?  So, we must
+                ;; always be sure to perform the renaming if there
+                ;; are bound occurrences of any of the se-ids
+                ;; in the list of parameters used by the exp, which
+                ;; happens to be a lambda-abst, in this case.
                 (let ((iset (id-list-intersection
                              ids
-                             ;; Substitute, for the list of id's checked against,
-                             ;; only those id's from the subst-exp which happen
-                             ;; to occur free with respect to the subst-exp.
-                             ;; Otherwise, there will be unnecessary renaming.
-                             ;; There is a price to pay for this, in general.
-                             ;; The use of the filter function is a quick, experimental
-                             ;; change to show that this prevents unnecessary variable
-                             ;; renaming.
-                             (filter (lambda (i) (occurs-free? i subst-exp)) se-ids))) )
+                             se-ids) ) )
                   ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
                   ;; 
                   (cond
                    ;; If there are NOT any id's in common between the argument list of this lambda,
+                   ;; and the id's which occur in the subst-exp,
                    ;; then we must merely recursively substitute, as usual.
-                   ((null? iset)
+                   ((and (null? iset) (not (occurs-bound? subst-id exp)))
+                    (display "TAKING FIRST BRANCH...")(display "\n")
                     (lambda-abst ids (subst body)))
                    ;; Otherwise, we must perform a set up substitutions on the lambda's body:
-                   ;; replace every free occurrence of a variable in the iset with its counterpart:
+                   ;; replace every occurrence of a variable in the ids with a new counterpart:
                    (else
+                    ;; All of the id's in the parameter list must be renamed.
+                    ;; This renaming is necessary, even when (occurs-bound? subst-id exp).
+                    ;; Even if there are not any id's common between the subst-exp
+                    ;; and the parameter list, if the subst-id is bound in the
+                    ;; exp (which is a lambda-abst in this case) it must be renamed
+                    ;; so that the recursive call to subst, below, does not
+                    ;; substitute the subst-exp for the bound variable named by
+                    ;; subst-id.
                     (let
-                        ((fresh-list (fresh-ids body iset)) )
+                        ((fresh-list (fresh-ids body ids)) )
+                      (display "SECOND-BRANCH...")(display "\n")
+                      (display ids)(display "\n")
+                      (display fresh-list)(display "\n")
                       (lambda-abst
                        (replace-ids ids fresh-list)
                        (subst (lambda-subst-helper body fresh-list)) ) ) ) ) ) )
