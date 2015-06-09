@@ -799,7 +799,7 @@
                  (cdr sr)                                   ) ) ) ) ) ) )
       (let
           ( (result (b-split-i (get-tree t) skey)) )
-        (cons
+        (list
          (tree-shell (comparer t) (car result))
          (tree-shell (comparer t) (cdr result)) ) ) )) )
 
