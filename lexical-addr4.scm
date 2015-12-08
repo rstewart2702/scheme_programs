@@ -1,6 +1,6 @@
 ;; Preparatory steps:
-(primitive-load "eopl2e/code/interps/r5rs.scm")
-(primitive-load "eopl2e/code/interps/define-datatype.scm")
+(load "eopl2e/code/interps/r5rs.scm")
+(load "eopl2e/code/interps/define-datatype.scm")
 
 ;; Grammar for define-datatype:
 ;; (define-datatype <type-name> <type-predicate-name>
