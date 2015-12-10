@@ -335,12 +335,12 @@
        (lex-addr-rands rest-exprs ctx)) ) ) ) )
 
 (define lex-addr
-  (lambda (e ctx)
+  (lambda (e ctx) ; ctx is always a list of, lists of vars from the enclosing context(s).
     (cases
      lambda-expr e
      (id-expr
       (identifier)
-      (find-lex identifier ctx 0))
+      (find-lex identifier ctx 0)) ; start looking for the variable within the stack of contexts.
      (id-bound-expr
       (id d p)
       (find-lex id ctx 0))
@@ -353,7 +353,7 @@
      (if-expr
       (test-expr true-expr false-expr)
       ;; "construct," or derive, an if-expr:
-      (if-expr
+      (if-expr 
        (lex-addr test-expr ctx)
        (lex-addr true-expr ctx)
        (lex-addr false-expr ctx)) )
@@ -362,6 +362,56 @@
       (appl-expr
        (lex-addr rator ctx)
        (lex-addr-rands rands ctx))) ) ) )
+
+(define all-ids-ids
+  (lambda (ids)
+    (cases
+        id-list ids
+      (empty-id-list () '())
+      (non-empty-id-list
+       (first-id rest-ids)
+       (cons first-id (all-ids-ids rest-ids)) )
+      )
+    )
+  )
+
+(define all-ids-expr-list
+  (lambda (rands)
+    (cases
+        expr-list rands
+      (empty-expr-list () '())
+      (non-empty-expr-list
+       (first-expr rest-exprs)
+       (append (all-ids first-expr)
+               (all-ids-expr-list rest-exprs)) )
+      )
+    )
+  )
+
+(define all-ids
+  (lambda (lce)
+    (cases
+        lambda-expr lce
+      (id-expr (identifier) (list identifier))
+      (id-bound-expr (id d p) (list id))
+      (id-free-expr (id) (list id))
+      ;;
+      (lambda-abst
+       (ids body)
+       (append (all-ids-ids ids) (all-ids body)) )
+      ;;
+      (if-expr
+       (test-expr true-expr false-expr)
+       (append (all-ids test-expr)
+               (all-ids true-expr)
+               (all-ids false-expr)) )
+      ;;
+      (appl-expr
+       (rator rands)
+       (append (all-ids rator)
+               (all-ids-expr-list rands)) ) )
+    )
+  )
 
 
 ;; (lex-addr
