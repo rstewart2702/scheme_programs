@@ -1,6 +1,6 @@
 ;; Preparatory steps:
-(primitive-load "eopl2e/code/interps/r5rs.scm")
-(primitive-load "eopl2e/code/interps/define-datatype.scm")
+(load "eopl2e/code/interps/r5rs.scm")
+(load "eopl2e/code/interps/define-datatype.scm")
 
 ;; Grammar for define-datatype:
 ;; (define-datatype <type-name> <type-predicate-name>
@@ -57,14 +57,14 @@
 
 ;; First, the abstract syntax for the lambda-calculus grammar
 ;; above:
-(define-datatype identifier identifier?
+(define-datatype identifier id?
   (id-i
    (i symbol?)) )
 
 (define-datatype id-list id-list?
   (empty-id-list)
   (non-empty-id-list
-   (first-id identifier?)
+   (first-id id?)
    (rest-ids id-list?)))
 
 ;; (define-datatype expr-list expr-list?
@@ -128,19 +128,26 @@
       (cond
        ((and (symbol? (car datum))
              (eqv? 'lambda (car datum)))
-        (lambda-abst
-         (cadr datum)
-         (parse-lambda-expr (caddr datum))) )
+        (let ((arg-list (cadr datum))
+              (body-expr (caddr datum)) )
+          (lambda-abst
+           arg-list
+           (parse-lambda-expr body-expr)) ) )
        ((and (symbol? (car datum))
              (eqv? 'if (car datum)))
-        (if-expr
-         (parse-lambda-expr (cadr datum))
-         (parse-lambda-expr (caddr datum))
-         (parse-lambda-expr (cadddr datum))) )
+        (let ((test-expr (cadr datum))
+              (true-expr (caddr datum))
+              (false-expr (cadddr datum)))
+          (if-expr
+           (parse-lambda-expr test-expr)
+           (parse-lambda-expr true-expr)
+           (parse-lambda-expr false-expr)) ) )
        (else
-        (appl-expr
-         (parse-lambda-expr (car datum))
-         (parse-le-expr-list (cdr datum)) ) ) ) )
+        (let ((rator-expr (car datum))
+              (rands-list (cdr datum)) )
+          (appl-expr
+           (parse-lambda-expr rator-expr)
+           (parse-le-expr-list rands-list) ) ) ) ) )
      (else (eopl:error 'parse-lambda-expr
                        "Invalid concrete syntax ~s" datum)))))
 
@@ -262,9 +269,9 @@
            ;;
            (lambda-abst
             (ids body)
-            (or (and (occurs-in x ids)
-                     (occurs-free? x body))
+            (or (occurs-free? x body)
                 (occurs-bound? x body)))
+           ;;
            (if-expr
             (test-expr true-expr false-expr)
             (or (occurs-bound? x test-expr)
@@ -437,7 +444,7 @@
                                  (extract-symbol-string (car ids)) syms))
                                f-a-list)) ) ) ) ) )
         (fresher id-l '()) ) ) ) )
-                         
+
 
 ;; Complete the implementation of fresh-id by defining all-ids, which finds
 ;; all the symbols in a lambda calculus expression (page 48, which is the 
@@ -674,7 +681,8 @@
                 ;; if it happens to show up in the se-ids.
                 ;; But this renaming is necessary if the subst-exp
                 ;; happens to be an expression which contains bound
-                ;; occurrences of the subst-id, yes?  So, we must
+                ;; occurrences of the subst-id, yes?  NO!  It *still is not necessary!*
+                ;; So, we must
                 ;; always be sure to perform the renaming if there
                 ;; are bound occurrences of any of the se-ids
                 ;; in the list of parameters used by the exp, which
@@ -688,7 +696,14 @@
                    ;; If there are NOT any id's in common between the argument list of this lambda,
                    ;; and the id's which occur in the subst-exp,
                    ;; then we must merely recursively substitute, as usual.
-                   ((and (null? iset) (not (occurs-bound? subst-id exp)))
+                   ((and (null? iset)
+                         ; Don't understand the need to check that
+                         ; subst-id is not bound in exp?
+                         ; RIGHT!  We don't want to have to rename
+                         ; a variable in the exp that happens to be
+                         ; bound in exp, the target expression, correct?
+                         (not (occurs-bound? subst-id exp))
+                         )
                     (lambda-abst ids (subst body)))
                    ;; Otherwise, we must perform a set up substitutions on the lambda's body:
                    ;; replace every occurrence of a variable in the ids with a new counterpart:
@@ -701,8 +716,21 @@
                     ;; so that the recursive call to subst, below, does not
                     ;; substitute the subst-exp for the bound variable named by
                     ;; subst-id.
+                    ;;
+                    ;; 2015-12-09 we don't really need to rename ALL of the bound
+                    ;; variables in exp, just the ones which are also used in the
+                    ;; subst-expr, right?  But currently, this renames all of them.
+                    ;; Oh!  Not anymore, once I changed ids to iset below in the
+                    ;; definition of fresh-list.
+                    ;;
+                    ;; Need to rename all identifiers inside exp which also
+                    ;; happen to be identifiers within the subst-exp.
+                    ;; This is done partly to avoid variable capture,
+                    ;; but also to help allay confusion.  In other words,
+                    ;; not all of the bound-identifier-renaming done here is
+                    ;; is necessary to preserve correctness.
                     (let
-                        ((fresh-list (fresh-ids body ids)) )
+                        ((fresh-list (fresh-ids body iset)) )
                       (lambda-abst
                        (replace-ids ids fresh-list)
                        (subst (lambda-subst-helper body fresh-list)) ) ) ) ) ) )
@@ -717,6 +745,151 @@
                (else (eopl:error 'lambda-calculus-subst
                                  "Invalid abstract syntax ~s" exp) ) ) ) ))
         (subst exp) ) ) ) )
+
+(define lambda-calculus-subst2
+  (lambda (exp       ;; The expression which must be changed.
+           subst-exp ;; The expression which will be "plugged into" exp 
+           subst-id) ;; The identifier inside of exp which will be replaced by subst-exp
+    ;; i.e., this is supposed to calculate 
+    ;;   exp[subst-exp/subst-id]
+    ;; AND avoid variable capture!
+    (let
+        ;; Seems to me that we need to know what the ids are inside subst-exp
+        ;; so that we can check to see if any bound id's we find in exp are
+        ;; a match for an id in the subst-exp?
+        ( (se-ids (all-ids subst-exp)) )
+      (letrec
+          ((subst
+            (lambda (exp)
+              (cases
+               lambda-expr exp
+               (const-expr (eks) exp)
+               (id-expr
+                (id)
+                (cond ((equal? id subst-id) subst-exp)
+                      (else exp)))
+               (lambda-abst
+                (arg-list body)
+                (let ((iset (id-list-intersection
+                             arg-list
+                             se-ids) ) )
+                  ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
+                  ;;
+                  (display iset)(display "\n")
+                  (display (unparse-lambda-expr exp))(display "\n")
+                  (display arg-list)(display "\n")
+                  (display se-ids)(display "\n")
+                  (display subst-id)(display "\n")
+                  (display (member subst-id arg-list))(display "\n\n")
+                  (cond
+                   ;; If there are NOT any id's in common
+                   ;; between the argument list of this lambda,
+                   ;; and the id's which occur in the subst-exp,
+                   ;; and the the identifier which is being replaced
+                   ;; is not already bound in the target expression, exp,
+                   ;; then we must merely recursively substitute, as usual.
+                   (;; (and (null? iset)
+                    ;;      (not (occurs-bound? subst-id exp))
+                    ;;      )
+                    (and (null? iset)
+                         (not (member subst-id arg-list)) )
+                  (display "first clause\n")
+                  (display iset)(display "\n")
+                  (display (unparse-lambda-expr exp))(display "\n")
+                  (display arg-list)(display "\n")
+                  (display se-ids)(display "\n")
+                  (display subst-id)(display "\n\n")
+                    (lambda-abst arg-list (subst body)))
+                   ;; Otherwise, we must perform a set up substitutions on the lambda's body:
+                   ;; replace every occurrence of a variable in the ids with a new counterpart:
+                   (else
+                    (let*
+                        ((fresh-list (fresh-ids body iset))
+                         (la-result (lambda-abst (replace-ids arg-list fresh-list) (subst (lambda-subst-helper2 body fresh-list)))) )
+                      (display (unparse-lambda-expr exp))(display "\n")
+                      (display (unparse-lambda-expr la-result))(display "\n\n")
+                      la-result
+;                      (lambda-abst
+;                       (replace-ids arg-list fresh-list)
+;                       (subst (lambda-subst-helper body fresh-list)) )
+                      ) ) ) ) )
+               (if-expr
+                (test-expr true-expr false-expr)
+                (if-expr (subst test-expr) (subst true-expr) (subst false-expr)))
+               (appl-expr
+                (rator rands)
+                (appl-expr
+                 (subst rator)
+                 (expr-list-subst subst rands)))
+               (else (eopl:error 'lambda-calculus-subst
+                                 "Invalid abstract syntax ~s" exp) ) ) ) ))
+        (subst exp) ) ) ) )
+
+(define lambda-calculus-subst3
+  (lambda (exp       ;; The expression which must be changed.
+           subst-exp ;; The expression which will be "plugged into" exp 
+           subst-id) ;; The identifier inside of exp which will be replaced by subst-exp
+    ;; i.e., this is supposed to calculate 
+    ;;   exp[subst-exp/subst-id]
+    ;; AND avoid variable capture!
+    (let
+        ;; Seems to me that we need to know what the ids are inside subst-exp
+        ;; so that we can check to see if any bound id's we find in exp are
+        ;; a match for an id in the subst-exp?
+        ( (se-ids (all-ids subst-exp)) )
+      (letrec
+          ((subst
+            (lambda (exp)
+              (cases
+               lambda-expr exp
+               (const-expr (eks) exp)
+               (id-expr
+                (id)
+                (cond ((equal? id subst-id) subst-exp)
+                      (else exp)))
+               (lambda-abst
+                (arg-list body)
+                ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
+                ;;
+                (cond
+                  ;; If the subst-id is in the arg-list, then it's a bound var in exp
+                  ;; and no substitution is allowed or needed.
+                  ((memv subst-id arg-list) exp)
+                  ;; If there are identifiers in common between the arg-list and the
+                  ;; identifiers used in the subst-expr,
+                  ;; then we must rename the common identifier instances inside the
+                  ;; arg-list and the body of the exp (which is a lambda-abst)
+                  ;; and the substitution must be performed on the new version
+                  ;; of the lambda-abst.
+                  (else
+                   (let
+                       ((iset (id-list-intersection arg-list se-ids) ))
+                     (cond
+                       ((not (null? iset))
+                        (let*
+                            ((fresh-list (fresh-ids body iset))
+                             (new-lambda-abst
+                              (lambda-abst
+                               (replace-ids arg-list fresh-list)
+                               (lambda-subst-helper3 body fresh-list) ) ) )
+                          (subst new-lambda-abst) ) )
+                       ;; If there weren't any identifiers in common between the arg-list
+                       ;; and the identifiers used in the subst-expr,
+                       ;; then all that is necessary is to calculate the substitution
+                       ;; on the lambda-abst's body.
+                       ((null? iset)
+                        (lambda-abst arg-list (subst body)) ) ) ) ) ) )
+                (if-expr
+                 (test-expr true-expr false-expr)
+                 (if-expr (subst test-expr) (subst true-expr) (subst false-expr)))
+                (appl-expr
+                 (rator rands)
+                 (appl-expr
+                  (subst rator)
+                  (expr-list-subst subst rands)))
+                (else (eopl:error 'lambda-calculus-subst
+                                  "Invalid abstract syntax ~s" exp) ) ) ) ) )
+           (subst exp) ) ) ) )
 
 ;; Usage:  (lambda-subst-helper <exp> <list-of-substs>)
 ;; where <exp> is a lambda-calculus expression
@@ -745,6 +918,20 @@
     (cond ((null? list-of-substs) exp)
           (else (lambda-subst-helper
                  (lambda-calculus-subst exp (id-expr (cadar list-of-substs)) (caar list-of-substs))
+                 (cdr list-of-substs)) ) ) ) )
+
+(define lambda-subst-helper2
+  (lambda (exp list-of-substs)
+    (cond ((null? list-of-substs) exp)
+          (else (lambda-subst-helper2
+                 (lambda-calculus-subst2 exp (id-expr (cadar list-of-substs)) (caar list-of-substs))
+                 (cdr list-of-substs)) ) ) ) )
+
+(define lambda-subst-helper3
+  (lambda (exp list-of-substs)
+    (cond ((null? list-of-substs) exp)
+          (else (lambda-subst-helper3
+                 (lambda-calculus-subst3 exp (id-expr (cadar list-of-substs)) (caar list-of-substs))
                  (cdr list-of-substs)) ) ) ) )
 
 (define expr-list-subst
@@ -792,3 +979,25 @@
 (define id-list-intersection
   (lambda (idl sym-set)
     (id-list-intersection-r idl sym-set '())))
+
+
+;; "Unit tests!"
+(define le-expr (parse-lambda-expr '(lambda (p) (f p z))))
+(unparse-lambda-expr (lambda-calculus-subst le-expr (parse-lambda-expr '((lambda (z) (m z)) p) ) 'f))
+
+(define le1 (parse-lambda-expr '(lambda (y) (f (lambda (f) (f y)) g))))
+(unparse-lambda-expr (lambda-calculus-subst le1 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+
+(define le4 (parse-lambda-expr '(lambda (y) (f (lambda (f) (f g)) g))))
+(unparse-lambda-expr (lambda-calculus-subst le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(unparse-lambda-expr (lambda-calculus-subst2 le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(unparse-lambda-expr (lambda-calculus-subst3 le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+
+(unparse-lambda-expr (lambda-calculus-subst3 le4 (parse-lambda-expr '(lambda (z) (w z))) 'f) )
+
+(define le5 (parse-lambda-expr '(lambda (y z) (f z (lambda (p) (p z)) (m n)))))
+(unparse-lambda-expr le5)
+(unparse-lambda-expr (parse-lambda-expr '(twelve eks)))
+(unparse-lambda-expr (lambda-calculus-subst le5 (parse-lambda-expr '(twelve eks)) 'z))
+(unparse-lambda-expr (lambda-calculus-subst3 le5 (parse-lambda-expr '(twelve eks)) 'z))
+(unparse-lambda-expr (lambda-calculus-subst3 le5 (parse-lambda-expr '(twelve eks)) 'm))
