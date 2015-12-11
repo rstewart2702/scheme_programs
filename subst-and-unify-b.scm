@@ -825,6 +825,7 @@
                                  "Invalid abstract syntax ~s" exp) ) ) ) ))
         (subst exp) ) ) ) )
 
+
 (define lambda-calculus-subst3
   (lambda (exp       ;; The expression which must be changed.
            subst-exp ;; The expression which will be "plugged into" exp 
@@ -890,6 +891,137 @@
                 (else (eopl:error 'lambda-calculus-subst
                                   "Invalid abstract syntax ~s" exp) ) ) ) ) )
            (subst exp) ) ) ) )
+
+;; *****************************************************
+;; Help with processing (<identifier> <subst-expr>) pairings?
+;; This is with an eye towards building infrastructure to help us
+;; with such lists, yes?
+;;
+;; We want something which does an "all-ids" for every one
+;; of the expressions in the (<identifier> <subst-expr>) pairings.
+;; The subst-list is a ( {(<identifier> <subst-expr>)}* ) kind of list!
+
+
+(define all-ids-all-exprs
+  (lambda (subst-list)
+    (letrec
+        ((all-ids-all-exprs-r
+         (lambda (sl accum-ids)
+           (cond
+             ((null? sl) accum-ids)
+             (else
+              (let*
+                  ((first-id (caar sl))
+                   (first-expr (cadar sl))
+                   (first-ids (all-ids first-expr)) )
+                (all-ids-all-exprs-r
+                 (cdr sl)
+                 (add-ids-to-set first-ids accum-ids) ) ) ) ) ) ))
+      (all-ids-all-exprs-r subst-list '()) ) ) )
+
+;; Need a mechanism to help us "filter-out" (via a predicate)
+;; those entries in a ( {(<identifier> <subst-expr>)}* ) list
+;; for which the <identifier> part shows up in a list.
+;; Should use foldl operation, most likely:
+(define subst-filter
+  (lambda (subst-list id-list)
+    (foldl
+     (lambda (i a)
+       (let ((sym (car i)))
+         (cond
+           ((memv sym id-list) a)
+           (else (cons i a) ) ) ) )
+     '()
+     subst-list
+     )
+    )
+  )
+
+;; Find the corresponding <subst-expr> in the given
+;;   ( {(identifier> <subst-expr>)}* )
+;; given the identifier in question:
+(define find-subst
+  (lambda (id subst-list)
+    (cond
+      ((null? subst-list) '())
+      (else
+       (let ((first-id (caar subst-list))
+             (first-expr (cadar subst-list)) )
+         (cond
+           ((equal? first-id id) first-expr)
+           (else (find-subst id (cdr subst-list)))) ) ) ) ) )
+
+;; (define subst-1 (cons (list 'a (parse-lambda-expr '(f x))) (list (list 'y (parse-lambda-expr '(lambda (n) (n f))))) ) )
+;; (equal? (all-ids-all-exprs subst-1) '(n f n x f))
+
+(define lambda-calc-multi-subst
+  (lambda (exp         ;; The expression which must be changed.
+           subst-list) ;; This is a ( { ( <identifier> <subst-expr> ) }* )
+    ;; i.e., this is supposed to calculate 
+    ;;   exp[subst-exp/subst-id]
+    ;; AND avoid variable capture!
+    (let
+        ;; Seems to me that we need to know what the ids are inside subst-exp
+        ;; so that we can check to see if any bound id's we find in exp are
+        ;; a match for an id in the subst-exp?
+        ( (se-ids (all-ids-all-exprs subst-list)) )
+      (letrec
+          ((subst
+            (lambda (exp)
+              (cases
+               lambda-expr exp
+               (const-expr (eks) exp)
+               (id-expr
+                (id)
+                (cond ((equal? id subst-id) subst-exp)
+                      (else exp)))
+               (lambda-abst
+                (arg-list body)
+                ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
+                ;;
+                (cond
+                  ;; If the subst-id is in the arg-list, then it's a bound var in exp
+                  ;; and no substitution is allowed or needed.
+                  ((memv subst-id arg-list) exp)
+                  ;; If there are identifiers in common between the arg-list and the
+                  ;; identifiers used in the subst-expr,
+                  ;; then we must rename the common identifier instances inside the
+                  ;; arg-list and the body of the exp (which is a lambda-abst)
+                  ;; and the substitution must be performed on the new version
+                  ;; of the lambda-abst.
+                  (else
+                   (let
+                       ((iset (id-list-intersection arg-list se-ids) ))
+                     (cond
+                       ((not (null? iset))
+                        (let*
+                            ((fresh-list (fresh-ids body iset))
+                             (new-lambda-abst
+                              (lambda-abst
+                               (replace-ids arg-list fresh-list)
+                               (lambda-subst-helper3 body fresh-list) ) ) )
+                          (subst new-lambda-abst) ) )
+                       ;; If there weren't any identifiers in common between the arg-list
+                       ;; and the identifiers used in the subst-expr,
+                       ;; then all that is necessary is to calculate the substitution
+                       ;; on the lambda-abst's body.
+                       ((null? iset)
+                        (lambda-abst arg-list (subst body)) ) ) ) ) ) )
+                (if-expr
+                 (test-expr true-expr false-expr)
+                 (if-expr (subst test-expr) (subst true-expr) (subst false-expr)))
+                (appl-expr
+                 (rator rands)
+                 (appl-expr
+                  (subst rator)
+                  (expr-list-subst subst rands)))
+                (else (eopl:error 'lambda-calculus-subst
+                                  "Invalid abstract syntax ~s" exp) ) ) ) ) )
+           (subst exp) ) ) ) )
+
+
+
+;; *****************************************************
 
 ;; Usage:  (lambda-subst-helper <exp> <list-of-substs>)
 ;; where <exp> is a lambda-calculus expression
