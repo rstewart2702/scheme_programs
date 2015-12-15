@@ -89,10 +89,10 @@
   (lambda (loterms ss)
     (cond
       ((null? loterms) ss)
-      (else (let
-                ((intr-result (all-ids-term-r (car loterms) ss)) )
-              (all-ids-loterms (cdr loterms) intr-result)
-              ) ) ) ) )
+      (else (all-ids-loterms
+             (cdr loterms)
+             (all-ids-term-r (car loterms) ss)))
+      ) ) )
 
 (define all-ids-term-r
   (lambda (t ss)
