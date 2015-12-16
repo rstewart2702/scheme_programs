@@ -110,3 +110,66 @@
   (lambda (t)
     (all-ids-term-r t '()) ) )
 
+
+;; Environment sample implementation, from Section 2.3:
+(define empty-env
+  (lambda ()
+    '() ))
+
+(define extend-env
+  (lambda (syms vals env)
+    (cons (list syms vals) env)))
+
+(define apply-env
+  (lambda (env sym)
+    (if (null? env)
+        (eopl:error 'apply-env "No binding for ~s" sym)
+        (let
+            ((syms (car (car env)))
+             (vals (cadr (car env)))
+             (env (cdr env)))
+          (let ((pos (rib-find-position sym syms)))
+            (if (number? pos)
+                (list-ref vals pos)
+                (apply-env env sym)))))))
+
+(define list-index
+  (lambda (pred ls)
+    (cond
+      ((null? ls) #f)
+      ((pred (car ls)) 0)
+      (else (let ((list-index-r (list-index pred (cdr ls))))
+              (if (number? list-index-r)
+                  (+ list-index-r 1)
+                  #f))))))
+
+(define list-find-position
+  (lambda (sym los)
+    (list-index (lambda (sym1) (eqv? sym1 sym)) los)))
+
+
+(define rib-find-position list-find-position)
+
+;; Exercise 2.24
+;; Define a substitution to be a function from the set of Scheme
+;; symbols to the set of terms (exercise 2.13, above).  The
+;; interface for substitutions consists of
+;;   (empty-subst)
+;; which maps each variable to the corresponding var-term
+;; (sometimes referred to as its trivial association);
+;;   (extend-subst i t s)
+;; which returns a new substitution like s, except that symbol
+;; i is mapped to term t; and
+;;   (apply-subst s i)
+;; which returns the value of symbol i in substitution s.
+;; Implement the data type of substitutions with both a
+;; procedural representation and an abstract syntax tree
+;; representation.
+;;
+;; Then implement a procedure
+;;   subst-in-term 
+;; that takes a term and a substitution and walks through the
+;; term replacing each variable with its association in the
+;; substitution, much like the procedure subst of section
+;; 1.2.2.  Finally, implement subst-in-terms that takes a list
+;; of terms.
