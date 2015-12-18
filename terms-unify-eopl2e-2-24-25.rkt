@@ -246,7 +246,6 @@
                    (else (cons (list s trm)
                                (extend-subst-r sym t sl)) ) )
              ) ) ) ) )
-
 (define extend-subst
   (lambda (i t s)
     (cases
