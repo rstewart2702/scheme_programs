@@ -173,3 +173,69 @@
 ;; substitution, much like the procedure subst of section
 ;; 1.2.2.  Finally, implement subst-in-terms that takes a list
 ;; of terms.
+
+(define subst-item?
+  (lambda (si)
+    (and
+     (pair? si)
+     (symbol? (car si))
+     (term? (cdr si))) ) )
+
+(define-datatype subst subst?
+  (subst-list
+   (sl (list-of subst-item?)) ) )
+
+(define empty-subst
+  (lambda (sym) (var-term sym)) )
+
+(define apply-subst
+  (lambda (subst sym)
+    (cond ((null? subst) (empty-subst sym))
+          (else
+           (let ((s (car (car subst)))
+                 (trm (car (cdr (car subst))) )
+                 (subst (cdr subst)) )
+             (cond ((eqv? s sym) trm)
+                   (else (apply-subst subst sym))) ) ) )
+    ) )
+
+(define extend-subst
+  (lambda (i t subst)
+    (cond ((null? subst) (cons (list i t) subst))
+          (else
+           (let ((s (car (car subst)))
+                 (trm (car (cdr (car subst))))
+                 (subst (cdr subst)) )
+             (cond ((eqv? s i) (cons (list i t) subst))
+                   (else (cons (list s trm)
+                               (extend-subst i t subst) ) ) )
+             ) ) ) ) )
+
+;; (parse-term '("append" ("cons" w x) y ("cons" w z)))
+
+(define subst-in-term
+  (lambda (trm subst)
+    (cases
+        term trm
+      (var-term
+       (id)
+       (apply-subst subst id) )
+      (constant-term (datum) trm)
+      (app-term
+       (loterms)
+       (list
+        (subst-in-term (car loterms) subst)
+        (subst-in-loterms (cdr loterms) subst) ))
+    ) ) )
+
+(define subst-in-loterms
+  (lambda (loterms subst)
+    (cond
+      ((null? loterms) '())
+      (else
+       (cons
+        (subst-in-term (car loterms) subst)
+        (subst-in-loterms (cdr loterms) subst)) ) )
+      ) )
+
+;; '( (w ("eff" x y)) )
