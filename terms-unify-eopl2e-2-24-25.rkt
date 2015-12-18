@@ -60,6 +60,7 @@
       ((constant? t) (constant-term t))
       ((list? t) (app-term (parse-list-of-terms t)) ) ) ) )
 
+
 (define unparse-list-of-terms
   (lambda (loterms)
     (cond
@@ -185,7 +186,7 @@
   (subst-list
    (sl (list-of subst-item?)) ) )
 
-(define parse-subst
+(define parse-subst-r
   (lambda (s)
     (cond
       ((null? s) '())
@@ -194,45 +195,67 @@
         ((subst-item? (car s))
          (cons
           (car s)
-          (parse-subst (cdr s)) ) )
+          (parse-subst-r (cdr s)) ) )
         (else
          (eopl:error
-          'parse-subst
-          "Invalid concrete syntax ~s"
+          'parse-subst-r
+          "Invalid concrete syntax of list item ~s"
           (car s))) ) )
       (else
        (eopl:error
-        'parse-subst
+        'parse-subst-r
         "Invalid concrete syntax ~s"
         s) ) ) ) )
 
+(define parse-subst
+  (lambda (s)
+    (cond ((null? s) (subst-list s))
+          (else (subst-list (parse-subst-r s)) ) ) ) )
+
+;;(parse-subst `( (sym1 ,(parse-term '("eff" x y)) ) (w ,(parse-term '("gee" m n))) ) )
 
 (define empty-subst
   (lambda (sym) (var-term sym)) )
 
+(define apply-subst-r
+  (lambda (sl sym)
+    (cond ((null? sl) (empty-subst sym))
+          (else
+           (let ((lsym (caar sl))
+                 (trm (cadar sl))
+                 (sl (cdr sl)) )
+             (cond ((eqv? lsym sym) trm)
+                   (else (apply-subst-r sl sym)) ) )
+           ) ) ) )
 (define apply-subst
-  (lambda (subst sym)
-    (cond ((null? subst) (empty-subst sym))
-          (else
-           (let ((s (car (car subst)))
-                 (trm (car (cdr (car subst))) )
-                 (subst (cdr subst)) )
-             (cond ((eqv? s sym) trm)
-                   (else (apply-subst subst sym))) ) ) )
-    ) )
+  (lambda (s sym)
+    (cases
+        subst s
+      (subst-list
+       (sl)
+       (apply-subst-r sl sym)) ) ) )
 
-(define extend-subst
-  (lambda (i t subst)
-    (cond ((null? subst) (cons (list i t) subst))
+(define extend-subst-r
+  (lambda (sym t sl)
+    (cond ((null? sl) (cons (list sym t) sl) )
           (else
-           (let ((s (car (car subst)))
-                 (trm (car (cdr (car subst))))
-                 (subst (cdr subst)) )
-             (cond ((eqv? s i) (cons (list i t) subst))
+           (let ((s (caar sl))
+                 (trm (cadar sl))
+                 (sl (cdr sl)) )
+             (cond ((eqv? s sym) (cons (list sym t) sl) )
                    (else (cons (list s trm)
-                               (extend-subst i t subst) ) ) )
+                               (extend-subst-r sym t sl)) ) )
              ) ) ) ) )
 
+(define extend-subst
+  (lambda (i t s)
+    (cases
+        subst s
+      (subst-list
+       (sl)
+       (extend-subst-r i t sl)) ) ) )
+
+;; (extend-subst 'w (parse-term '("ugh" u v)) (parse-subst `( (sym1 ,(parse-term '("eff" x y)) ) (w ,(parse-term '("gee" m n))) (q ,(parse-term '(m n o))) ) ) )
 ;; (parse-term '("append" ("cons" w x) y ("cons" w z)))
 
 (define subst-in-term
