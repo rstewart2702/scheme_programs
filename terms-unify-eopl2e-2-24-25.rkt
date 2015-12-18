@@ -179,11 +179,33 @@
     (and
      (pair? si)
      (symbol? (car si))
-     (term? (cdr si))) ) )
+     (term? (cadr si))) ) )
 
 (define-datatype subst subst?
   (subst-list
    (sl (list-of subst-item?)) ) )
+
+(define parse-subst
+  (lambda (s)
+    (cond
+      ((null? s) '())
+      ((pair? s)
+       (cond
+        ((subst-item? (car s))
+         (cons
+          (car s)
+          (parse-subst (cdr s)) ) )
+        (else
+         (eopl:error
+          'parse-subst
+          "Invalid concrete syntax ~s"
+          (car s))) ) )
+      (else
+       (eopl:error
+        'parse-subst
+        "Invalid concrete syntax ~s"
+        s) ) ) ) )
+
 
 (define empty-subst
   (lambda (sym) (var-term sym)) )
