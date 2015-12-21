@@ -416,7 +416,7 @@
           (cases term t
             (constant-term (tdatum)
              (if (equal? tdatum udatum) (empty-subst) #f))
-          (else #f)))
+            (else #f)))
          (app-term (us)
           (cases term t
             (app-term (ts)
@@ -461,3 +461,16 @@
 ;;
 ;; The memv test inside unify-term is called the "occurs check."
 ;; Create an example to illustrate that this is necessary.
+
+(define unit-subst
+  (lambda (i t)
+    (subst-list (list (list i t))) ) )
+
+;; The early inclination for the design of compose-substs
+;; is to, somehow, iteratively/recursively apply
+;;   extend-subst
+;; against s1, from the items inside s2?
+
+(define compose-substs
+  (lambda (s1 s2)
+    
