@@ -460,4 +460,4 @@
 ;;         (subst-in-term (subst-in-term t s1) s2) )
 ;;
 ;; The memv test inside unify-term is called the "occurs check."
-;; Create an example to illustrate that this is necesary.
+;; Create an example to illustrate that this is necessary.
