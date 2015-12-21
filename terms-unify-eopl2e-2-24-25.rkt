@@ -100,7 +100,7 @@
     (cases
         term t
       (var-term (id) (cons id ss))
-      (constant-term (datum) (cons datum ss))
+      (constant-term (datum) ss)
       (app-term
        (loterms)
        (all-ids-term-r
@@ -396,6 +396,11 @@
 ;; The following shows part of an algorithm to find the most
 ;; general unifying substitution.  If no such unifier exists,
 ;; it returns #f:
+
+;; Just "hack" to ensure that the all-ids-term function is
+;; used by the unify-term function when it applies "all-ids."
+(define all-ids all-ids-term)  
+
 (define unify-term
   (lambda (t u)
     (cases term t
