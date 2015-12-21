@@ -175,6 +175,8 @@
 ;; 1.2.2.  Finally, implement subst-in-terms that takes a list
 ;; of terms.
 
+;; N.B. This is a "tagged-data-structure" implmentation
+;; for the substitution abstract syntax tree.
 (define subst-item?
   (lambda (si)
     (and
@@ -214,12 +216,22 @@
 
 ;;(parse-subst `( (sym1 ,(parse-term '("eff" x y)) ) (w ,(parse-term '("gee" m n))) ) )
 
+;; At first, I didn't clearly understand the role of empty-subst
+;; when using an AST representation.
+;; The purpose of empty-subst is to evaluate to a data structure
+;; or a value such that
+;;   (equal? (apply-subst (empty-subst) sym) (var-term sym))
+;; From the imperative/procedural perspective, empty-subst
+;; "constructs" an empty substitution, suitable for further
+;; "extension" via extend-subst.
 (define empty-subst
-  (lambda (sym) (var-term sym)) )
+  (lambda () (subst-list '()) ) )
 
 (define apply-subst-r
   (lambda (sl sym)
-    (cond ((null? sl) (empty-subst sym))
+    (cond ((null? sl) (var-term sym))
+          ;; I guess it might be more "explicit" to say:
+          ;; ((equal? (empty-subst) sl) (var-term sym)) ?
           (else
            (let ((lsym (caar sl))
                  (trm (cadar sl))
@@ -252,11 +264,22 @@
         subst s
       (subst-list
        (sl)
-       (extend-subst-r i t sl)) ) ) )
+       (subst-list (extend-subst-r i t sl))) ) ) )
 
-;; (extend-subst 'w (parse-term '("ugh" u v)) (parse-subst `( (sym1 ,(parse-term '("eff" x y)) ) (w ,(parse-term '("gee" m n))) (q ,(parse-term '(m n o))) ) ) )
+;(extend-subst
+; 'w (parse-term '("ugh" u v))
+; (parse-subst
+;  `( (sym1 ,(parse-term '("eff" x y)) )
+;     (w ,(parse-term '("gee" m n)))
+;     (q ,(parse-term '(m n o))) ) ) )
+
 ;; (parse-term '("append" ("cons" w x) y ("cons" w z)))
 
+;; subst-in-term:
+;; Takes a term and a substitution and walks through the
+;; term replacing each variable with its association in the
+;; substitution, much like the procedure subst of section
+;; 1.2.2.
 (define subst-in-term
   (lambda (trm subst)
     (cases
@@ -267,10 +290,8 @@
       (constant-term (datum) trm)
       (app-term
        (loterms)
-       (list
-        (subst-in-term (car loterms) subst)
-        (subst-in-loterms (cdr loterms) subst) ))
-    ) ) )
+       (app-term
+        (subst-in-loterms loterms subst)) ) ) ) )
 
 (define subst-in-loterms
   (lambda (loterms subst)
@@ -283,3 +304,155 @@
       ) )
 
 ;; '( (w ("eff" x y)) )
+;;
+;(equal?
+; (apply-subst
+;  (parse-subst
+;   `( (sym1 ,(parse-term '("eff" x y)) )
+;      (w ,(parse-term '("gee" m n)))
+;      (q ,(parse-term '(m n o))) ) )
+;  'z)
+; (parse-term 'z) )
+;
+;(equal?
+; (extend-subst
+;  'w
+;  (parse-term '("ugh" u v))
+;  (parse-subst
+;   `( (sym1 ,(parse-term '("eff" x y)) )
+;      (w ,(parse-term '("gee" m n)))
+;      (q ,(parse-term '(m n o))) ) ) )
+; (parse-subst
+;  `( (sym1 ,(parse-term '("eff" x y)) )
+;     (w ,(parse-term '("ugh" u v)))
+;     (q ,(parse-term '(m n o))) ) ) )
+;; 
+
+;; "Finally, implement subst-in-terms that takes a list
+;; of terms."
+;; N.B. I think what the exercise is asking for is 
+;; based on something I have already written, and this
+;; is also a consequence of the abstract syntax tree
+;; representation of substitutions.
+(define subst-in-terms
+  (lambda (loterms subst)
+    (cond
+      ((null? loterms) loterms)
+      (else
+       (cons
+        (subst-in-term (car loterms) subst)
+        (subst-in-terms (cdr loterms) subst) ) ) ) ) )
+     
+
+;(equal?
+; (subst-in-terms
+;  (list
+;   (parse-term '("append" ("cons" w x) y ("cons" w z)))
+;   (parse-term '("append" x1 y z1))
+;   )
+;  (parse-subst
+;   `( (sym1 ,(parse-term '("eff" x y)) )
+;      (x1   ,(parse-term '("cons" w x)) )
+;      (z1   ,(parse-term '("cons" w z)) )
+;      (y    ,(parse-term "replacement-of-y!") ) ) ) )
+; (list
+;  (parse-term '("append" ("cons" w x) "replacement-of-y!" ("cons" w z)) )
+;  (parse-term '("append" ("cons" w x) "replacement-of-y!" ("cons" w z)) ) ) )
+;
+;(subst-in-term
+; (parse-term '("append" ("cons" w x) y ("cons" w z)))
+; (parse-subst
+;   `( (sym1 ,(parse-term '("eff" x y)) )
+;      (x1   ,(parse-term '("cons" w x)) )
+;      (z1   ,(parse-term '("cons" w z)) )
+;      (y    ,(parse-term "replacement-of-y!") ) ) ) )
+;
+;(subst-in-term
+; (parse-term '("append" x1 y z1))
+; (parse-subst
+;   `( (sym1 ,(parse-term '("eff" x y)) )
+;      (x1   ,(parse-term '("cons" w x)) )
+;      (z1   ,(parse-term '("cons" w z)) )
+;      (y    ,(parse-term "replacement-of-y!") ) ) ) )
+
+
+;; So, now we move on to Exercise 2.25:
+;; An important use of substitutions is in the
+;;   unification problem.
+;; The unification problem is:
+;;   Given two terms, t and u, can they be made equal?
+;;   More precisely, is there a substitution s
+;;   such that
+;;     (subst-in-term t s)
+;;   and
+;;     (subst-in-term u s)
+;;   are equal?
+;; We say that such an s
+;;   unifies
+;; t and u.
+;; There may be many such unifiers.  If so, there will
+;; always be one that is the most general.
+;;
+;; The following shows part of an algorithm to find the most
+;; general unifying substitution.  If no such unifier exists,
+;; it returns #f:
+(define unify-term
+  (lambda (t u)
+    (cases term t
+      (var-term (tid)
+       (if (or (var-term? u) (not (memv tid (all-ids u))))
+           (unit-subst tid u)
+           #f))
+      (else
+       (cases term u
+         (var-term (uid)
+          (unify-term u t))
+         (constant-term (udatum)
+          (cases term t
+            (constant-term (tdatum)
+             (if (equal? tdatum udatum) (empty-subst) #f))
+          (else #f)))
+         (app-term (us)
+          (cases term t
+            (app-term (ts)
+             (unify-terms ts us))
+            (else #f))) ) ) ) ) )
+
+(define unify-terms
+  (lambda (ts us)
+    (cond
+      ((and (null? ts) (null? us)) (empty-subst))
+      ((or (null? ts) (null? us)) #f)
+      (else
+       (let
+           ((subst-car (unify-term (car ts) (car us))))
+         (if (not subst-car)
+             (#f)
+             (let
+                 ((new-ts (subst-in-terms (cdr ts) subst-car))
+                  (new-us (subst-in-terms (cdr us) subst-car)) )
+               (let
+                   ((subst-cdr (unify-terms (new-ts new-us)) ) )
+                 (if (not subst-cdr)
+                     #f
+                     (compose-substs (subst-car subst-cdr))) )
+               ) ) ) ) ) ) )
+
+;; Complete the algorithm by extending the substitution interface
+;; with two functions:
+;;   unit-subst and compose-substs
+;; The application
+;;   (unit-subst i t)
+;; returns a substitution that replaces symbol i with term t
+;; and replaces any other symbol by its trivial association.
+;;
+;; The application
+;;   (compose-substs s1 s2)
+;; returns a substitition s' such that
+;;   for all terms t,
+;;      (equal?
+;;         (subst-in-term t s')
+;;         (subst-in-term (subst-in-term t s1) s2) )
+;;
+;; The memv test inside unify-term is called the "occurs check."
+;; Create an example to illustrate that this is necesary.
