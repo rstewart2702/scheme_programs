@@ -18,6 +18,12 @@
 ;; string, a number, a boolean, or the empty list) or a list of terms.
 ;; We can use the folliwng data type to define the abstract syntax of terms:
 
+(define var-term?
+  (lambda (x)
+    (cases term x
+      (var-term (xi) #t)
+      (else #f)) ) )
+
 (define-datatype term term?
   (var-term (id symbol?))
   (constant-term (datum constant?))
@@ -405,6 +411,7 @@
   (lambda (t u)
     (cases term t
       (var-term (tid)
+       ;; (unit-subst tid u) )
        (if (or (var-term? u) (not (memv tid (all-ids u))))
            (unit-subst tid u)
            #f))
@@ -437,10 +444,10 @@
                  ((new-ts (subst-in-terms (cdr ts) subst-car))
                   (new-us (subst-in-terms (cdr us) subst-car)) )
                (let
-                   ((subst-cdr (unify-terms (new-ts new-us)) ) )
+                   ((subst-cdr (unify-terms new-ts new-us) ) )
                  (if (not subst-cdr)
                      #f
-                     (compose-substs (subst-car subst-cdr))) )
+                     (compose-substs subst-car subst-cdr)) )
                ) ) ) ) ) ) )
 
 ;; Complete the algorithm by extending the substitution interface
@@ -473,4 +480,64 @@
 
 (define compose-substs
   (lambda (s1 s2)
-    
+    (letrec
+        ((subst-of-subst
+          (lambda (s1 s2)
+            (cond ((null? s1)
+                   (cases subst s2
+                     (subst-list (sli) sli) ) )
+                  (else
+                   (let ((sym (caar s1))
+                         (t   (cadar s1)) )
+                     (cons (list sym (subst-in-term t s2))
+                           (subst-of-subst (cdr s1) s2) ) )
+                   ) ) ) ) )
+      (cases subst s1
+        (subst-list (sl1)
+           (subst-list (subst-of-subst sl1 s2) ) ) ) ) ) )
+
+
+(compose-substs
+ (parse-subst `( (a ,(parse-term '("eff" z m f)) ) (ell ,(parse-term '(k z em))) ) )
+ (parse-subst `( (z ,(parse-term '("cons" (a b) k) )) ) ) )
+
+(define unparse-subst-r
+  (lambda (sli)
+      (cond ((null? sli) '())
+            (else
+             (let ((sym (caar sli))
+                   (t   (cadar sli)))
+               (cons (list sym (unparse-term t))
+                     (unparse-subst-r (cdr sli)))))) ) )
+(define unparse-subst
+  (lambda (s)
+    (cases subst s
+      (subst-list (sli) (unparse-subst-r sli)))))
+
+(let*
+      ((t1 (parse-term '("eff" z m p)))
+       (t2 (parse-term '(fm ("cons" f g) b k)) )
+       (utr (unify-term t1 t2) ) )
+    (list (unparse-term (subst-in-term t1 utr)) (unparse-term (subst-in-term t2 utr))
+          (list 'unparsed-subst (unparse-subst utr)) ) )
+
+
+(let*
+      ((t1 (parse-term '("eff" z (m x) p)))
+       (t2 (parse-term '(fm ("cons" f g) (b (g n)) k)) )
+       (utr (unify-term t1 t2) ) )
+    (list (unparse-term (subst-in-term t1 utr)) (unparse-term (subst-in-term t2 utr))
+          (list 'unparsed-subst (unparse-subst utr)) ) )
+
+(unify-term (parse-term '(q (p x y) (p y x))) (parse-term '(q z z)))
+(unify-term (parse-term '(p x y)) (parse-term '(p y x)))
+(unify-term (parse-term '(p x y a)) (parse-term '(p y x x)))
+
+(unify-term (parse-term '("p" x y "a")) (parse-term '("p" y x x)))
+
+(unify-term (parse-term '("q" ("p" x y) ("p" y x))) (parse-term '("q" z z)))
+
+(unify-term (parse-term '("p" x y "a")) (parse-term '("p" y x x)))
+
+(unify-term (parse-term '("p" x y) ) (parse-term '("p" y x)))
+
