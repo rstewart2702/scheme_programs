@@ -498,7 +498,8 @@
 
 
 (compose-substs
- (parse-subst `( (a ,(parse-term '("eff" z m f)) ) (ell ,(parse-term '(k z em))) ) )
+ (parse-subst `( (a ,(parse-term '("eff" z m f)) )
+                 (ell ,(parse-term '(k z em))) ) )
  (parse-subst `( (z ,(parse-term '("cons" (a b) k) )) ) ) )
 
 (define unparse-subst-r
@@ -518,7 +519,8 @@
       ((t1 (parse-term '("eff" z m p)))
        (t2 (parse-term '(fm ("cons" f g) b k)) )
        (utr (unify-term t1 t2) ) )
-    (list (unparse-term (subst-in-term t1 utr)) (unparse-term (subst-in-term t2 utr))
+    (list (unparse-term (subst-in-term t1 utr))
+          (unparse-term (subst-in-term t2 utr))
           (list 'unparsed-subst (unparse-subst utr)) ) )
 
 
@@ -526,18 +528,26 @@
       ((t1 (parse-term '("eff" z (m x) p)))
        (t2 (parse-term '(fm ("cons" f g) (b (g n)) k)) )
        (utr (unify-term t1 t2) ) )
-    (list (unparse-term (subst-in-term t1 utr)) (unparse-term (subst-in-term t2 utr))
+    (list (unparse-term (subst-in-term t1 utr))
+          (unparse-term (subst-in-term t2 utr))
           (list 'unparsed-subst (unparse-subst utr)) ) )
 
-(unify-term (parse-term '(q (p x y) (p y x))) (parse-term '(q z z)))
-(unify-term (parse-term '(p x y)) (parse-term '(p y x)))
-(unify-term (parse-term '(p x y a)) (parse-term '(p y x x)))
+(unify-term (parse-term '(q (p x y) (p y x)))
+            (parse-term '(q z z)))
+(unify-term (parse-term '(p x y))
+            (parse-term '(p y x)))
+(unify-term (parse-term '(p x y a))
+            (parse-term '(p y x x)))
 
-(unify-term (parse-term '("p" x y "a")) (parse-term '("p" y x x)))
+(unify-term (parse-term '("p" x y "a"))
+            (parse-term '("p" y x x)))
 
-(unify-term (parse-term '("q" ("p" x y) ("p" y x))) (parse-term '("q" z z)))
+(unify-term (parse-term '("q" ("p" x y) ("p" y x)))
+            (parse-term '("q" z z)))
 
-(unify-term (parse-term '("p" x y "a")) (parse-term '("p" y x x)))
+(unify-term (parse-term '("p" x y "a"))
+            (parse-term '("p" y x x)))
 
-(unify-term (parse-term '("p" x y) ) (parse-term '("p" y x)))
+(unify-term (parse-term '("p" x y) )
+            (parse-term '("p" y x)))
 
