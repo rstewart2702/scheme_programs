@@ -479,13 +479,17 @@
 (define add-ids-to-set
   (lambda (ids ss)
     (cond ((null? ids) ss)
-          (else (add-ids-to-set (cdr ids) (cons (car ids) ss)) ) ) ) )
+          (else (add-ids-to-set
+                 (cdr ids)
+                 (cons (car ids) ss)) ) ) ) )
 
 (define add-expr-list-sets
   (lambda (el ss)
     (cond ((null? el) ss)
           (else (let ((intrm-list (all-ids-r (car el) '())))
-                  (add-expr-list-sets (cdr el) (add-ids-to-set intrm-list ss)) ) ) ) ) )
+                  (add-expr-list-sets
+                   (cdr el)
+                   (add-ids-to-set intrm-list ss)) ) ) ) ) )
 
 (define add-id-list-to-set
   (lambda (idl ss)
@@ -827,15 +831,17 @@
 
 
 (define lambda-calculus-subst3
-  (lambda (exp       ;; The expression which must be changed.
-           subst-exp ;; The expression which will be "plugged into" exp 
-           subst-id) ;; The identifier inside of exp which will be replaced by subst-exp
+  (lambda (exp       ;; The expr which must be changed.
+           subst-exp ;; The expr which will be "plugged into" exp 
+           subst-id) ;; The identifier inside of exp which will be
+                     ;;   replaced by subst-exp
     ;; i.e., this is supposed to calculate 
     ;;   exp[subst-exp/subst-id]
     ;; AND avoid variable capture!
     (let
-        ;; Seems to me that we need to know what the ids are inside subst-exp
-        ;; so that we can check to see if any bound id's we find in exp are
+        ;; Seems to me that we need to know what the ids
+        ;; are inside subst-exp so that we can check to see
+        ;; if any bound id's we find in exp are
         ;; a match for an id in the subst-exp?
         ( (se-ids (all-ids subst-exp)) )
       (letrec
@@ -850,18 +856,22 @@
                       (else exp)))
                (lambda-abst
                 (arg-list body)
-                ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
+                ;; iset is the set-of-id's-which are in both
+                ;; the arg-list and the subst-expr.
                 ;;
                 (cond
-                  ;; If the subst-id is in the arg-list, then it's a bound var in exp
+                  ;; If the subst-id is in the arg-list,
+                  ;; then it's a bound var in exp
                   ;; and no substitution is allowed or needed.
                   ((memv subst-id arg-list) exp)
-                  ;; If there are identifiers in common between the arg-list and the
-                  ;; identifiers used in the subst-expr,
-                  ;; then we must rename the common identifier instances inside the
-                  ;; arg-list and the body of the exp (which is a lambda-abst)
-                  ;; and the substitution must be performed on the new version
-                  ;; of the lambda-abst.
+                  ;; If there are identifiers in common between
+                  ;; the arg-list and the identifiers used in
+                  ;; the subst-expr, then we must rename the
+                  ;; common identifier instances inside the
+                  ;; arg-list and the body of the exp
+                  ;; (which is a lambda-abst) and the
+                  ;; substitution must be performed on the
+                  ;; new version of the lambda-abst.
                   (else
                    (let
                        ((iset (id-list-intersection arg-list se-ids) ))
@@ -874,9 +884,11 @@
                                (replace-ids arg-list fresh-list)
                                (lambda-subst-helper3 body fresh-list) ) ) )
                           (subst new-lambda-abst) ) )
-                       ;; If there weren't any identifiers in common between the arg-list
-                       ;; and the identifiers used in the subst-expr,
-                       ;; then all that is necessary is to calculate the substitution
+                       ;; If there weren't any identifiers in
+                       ;; common between the arg-list and the
+                       ;; identifiers used in the subst-expr,
+                       ;; then all that is necessary is to
+                       ;; calculate the substitution
                        ;; on the lambda-abst's body.
                        ((null? iset)
                         (lambda-abst arg-list (subst body)) ) ) ) ) ) )
@@ -961,8 +973,10 @@
     ;;   exp[subst-exp/subst-id]
     ;; AND avoid variable capture!
     (let
-        ;; Seems to me that we need to know what the ids are inside subst-exp
-        ;; so that we can check to see if any bound id's we find in exp are
+        ;; Seems to me that we need to know what
+        ;; the ids are inside subst-exp
+        ;; so that we can check to see if any
+        ;; bound id's we find in exp are
         ;; a match for an id in the subst-exp?
         ( (se-ids (all-ids-all-exprs subst-list)) )
       (letrec
@@ -977,18 +991,22 @@
                       (else exp)))
                (lambda-abst
                 (arg-list body)
-                ;; iset is the set-of-id's-which are in both the arg-list and the subst-expr.
+                ;; iset is the set-of-id's-which are in
+                ;; both the arg-list and the subst-expr.
                 ;;
                 (cond
-                  ;; If the subst-id is in the arg-list, then it's a bound var in exp
+                  ;; If the subst-id is in the arg-list,
+                  ;; then it's a bound var in exp
                   ;; and no substitution is allowed or needed.
                   ((memv subst-id arg-list) exp)
-                  ;; If there are identifiers in common between the arg-list and the
+                  ;; If there are identifiers in common between
+                  ;; the arg-list and the
                   ;; identifiers used in the subst-expr,
-                  ;; then we must rename the common identifier instances inside the
-                  ;; arg-list and the body of the exp (which is a lambda-abst)
-                  ;; and the substitution must be performed on the new version
-                  ;; of the lambda-abst.
+                  ;; then we must rename the common identifier
+                  ;; instances inside the arg-list and the body
+                  ;; of the exp (which is a lambda-abst)
+                  ;; and the substitution must be performed
+                  ;; on the new version of the lambda-abst.
                   (else
                    (let
                        ((iset (id-list-intersection arg-list se-ids) ))
@@ -1001,10 +1019,12 @@
                                (replace-ids arg-list fresh-list)
                                (lambda-subst-helper3 body fresh-list) ) ) )
                           (subst new-lambda-abst) ) )
-                       ;; If there weren't any identifiers in common between the arg-list
+                       ;; If there weren't any identifiers in
+                       ;; common between the arg-list
                        ;; and the identifiers used in the subst-expr,
-                       ;; then all that is necessary is to calculate the substitution
-                       ;; on the lambda-abst's body.
+                       ;; then all that is necessary is to
+                       ;; calculate the substitution on the
+                       ;; lambda-abst's body.
                        ((null? iset)
                         (lambda-abst arg-list (subst body)) ) ) ) ) ) )
                 (if-expr
@@ -1025,15 +1045,18 @@
 
 ;; Usage:  (lambda-subst-helper <exp> <list-of-substs>)
 ;; where <exp> is a lambda-calculus expression
-;;       <list-of-substs> ::= ( ) | ( (<old-var> <new-expr>) . <list-of-substs> )
-;; and the idea is that each of the (<old-var> <new-expr>) "pairs" must be
+;;     <list-of-substs> ::=
+;;         ( )
+;;       | ( (<old-var> <new-expr>) . <list-of-substs> )
+;; and the idea is that each of the (<old-var> <new-expr>)
+;; "pairs" must be
 ;; used to recursively calculate:
 ;;   (lambda-calculus-subst <exp> (cdar <list-of-substs>) (caar <list-of-substs>))
-;; This recursively applies a sequence of substitutions to an expression,
-;; one at a time.
+;; This recursively applies a sequence of substitutions
+;; to an expression, one at a time.
 ;;
-;; THERE IS A POTENTIAL PROBLEM HERE, FOR WHAT HAPPENS IF TWO DIFFERENT SUBSTITUTIONS,
-;; IN GENERAL, AFFECT EACH OTHER?
+;; THERE IS A POTENTIAL PROBLEM HERE, FOR WHAT HAPPENS IF TWO
+;; DIFFERENT SUBSTITUTIONS, IN GENERAL, AFFECT EACH OTHER?
 ;; FOR EXAMPLE, IF THERE ARE TWO SUBSTITUTIONS, THEN THIS DOES:
 ;;   (expr[e1/x1])[e2/x2]
 ;; BUT WE NEED TO BE SURE THAT THIS IS WHAT WE WANT, FOR WHAT IF
@@ -1042,8 +1065,9 @@
 ;; THE CASE, THEN ALL OCCURRENCES OF x2 IN (expr[e1/x1]) WILL
 ;; BE REPLACED WITH e2.
 ;;
-;; WHEN THE SEQUENCE OF SUBSTITUTIONS IS DONE TO MAP FROM ONE VARIABLE TO A "FRESH"
-;; VERSION OF ITSELF, THEN THIS DOES WHAT WE WANT.  OTHERWISE, THIS MAY NOT DO
+;; WHEN THE SEQUENCE OF SUBSTITUTIONS IS DONE TO MAP FROM
+;; ONE VARIABLE TO A "FRESH" VERSION OF ITSELF, THEN THIS
+;; DOES WHAT WE WANT.  OTHERWISE, THIS MAY NOT DO
 ;; WHAT WE INTEND.
 (define lambda-subst-helper
   (lambda (exp list-of-substs)
