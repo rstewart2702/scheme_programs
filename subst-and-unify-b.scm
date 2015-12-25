@@ -900,7 +900,7 @@
                  (appl-expr
                   (subst rator)
                   (expr-list-subst subst rands)))
-                (else (eopl:error 'lambda-calculus-subst
+                (else (eopl:error 'lambda-calculus-subst3
                                   "Invalid abstract syntax ~s" exp) ) ) ) ) )
            (subst exp) ) ) ) )
 
