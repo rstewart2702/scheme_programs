@@ -97,7 +97,7 @@
 ;; Mergesort-related functions:
 
 ; Function composition combinator:
-(define compose
+(define my-compose
   (lambda (f g)
     [lambda (x) (f (g x))] ) )
 
@@ -183,6 +183,34 @@
           ; (printf "After split:  ~a~n" two-lists)
           (merge (mergesortloi (car two-lists) )
                  (mergesortloi (cadr two-lists)))) ] ) ) )
+
+(define mergesortloi-nice
+  (lambda (l)
+    (cond
+      ((null? l) '())
+      (else
+       (let* ((l-tail (cdr l))
+              (l-first (car l))
+              (l-second (if (null? l-first) '() (cadr l)))
+              (l-third (if (null? l-second) '() (cddr l))) )
+         (cond
+           ((null? l-tail) ;; Is the list only one element long?
+            l)
+           ((and (null? l-third) ;; the list is only two elements long AND
+                 (< l-first l-second) ) ; the two elements are already in order
+            l) ;; return the sorted list
+           ((and (null? l-third) ;; the list is only two elements long AND
+                 (<= l-second l-first) ) ;; the two elements are out of order
+            (list l-second l-first))
+           ;; this is the more general case:
+           (else
+            (let
+                ((two-lists (split-list (quotient (length l) 2) l)))
+              (merge (mergesortloi-nice (car two-lists))
+                     (mergesortloi-nice (cadr two-lists)) ) ) )
+           ) ) ) ) ) )
+                 
+             
 
 (define mergesortloi2
   (lambda (l)
