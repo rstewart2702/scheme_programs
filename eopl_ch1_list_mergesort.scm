@@ -191,7 +191,7 @@
       (else
        (let* ((l-tail (cdr l))
               (l-first (car l))
-              (l-second (if (null? l-first) '() (cadr l)))
+              (l-second (if (null? l-tail) '() (cadr l)))
               (l-third (if (null? l-second) '() (cddr l))) )
          (cond
            ((null? l-tail) ;; Is the list only one element long?
