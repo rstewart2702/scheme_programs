@@ -1138,22 +1138,58 @@
 
 
 ;; "Unit tests!"
-(define le-expr (parse-lambda-expr '(lambda (p) (f p z))))
-(unparse-lambda-expr (lambda-calculus-subst le-expr (parse-lambda-expr '((lambda (z) (m z)) p) ) 'f))
+(define le-expr
+  (parse-lambda-expr '(lambda (p) (f p z))))
+(unparse-lambda-expr
+ (lambda-calculus-subst
+  le-expr
+  (parse-lambda-expr '((lambda (z) (m z)) p) ) 'f))
 
-(define le1 (parse-lambda-expr '(lambda (y) (f (lambda (f) (f y)) g))))
-(unparse-lambda-expr (lambda-calculus-subst le1 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(define le1
+  (parse-lambda-expr '(lambda (y) (f (lambda (f) (f y)) g))))
+(unparse-lambda-expr
+ (lambda-calculus-subst
+  le1
+  (parse-lambda-expr '(lambda (y) (g y))) 'f))
 
-(define le4 (parse-lambda-expr '(lambda (y) (f (lambda (f) (f g)) g))))
-(unparse-lambda-expr (lambda-calculus-subst le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
-(unparse-lambda-expr (lambda-calculus-subst2 le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
-(unparse-lambda-expr (lambda-calculus-subst3 le4 (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(define le4
+  (parse-lambda-expr '(lambda (y) (f (lambda (f) (f g)) g))))
+(unparse-lambda-expr
+ (lambda-calculus-subst
+  le4
+  (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(unparse-lambda-expr
+ (lambda-calculus-subst2
+  le4
+  (parse-lambda-expr '(lambda (y) (g y))) 'f))
+(unparse-lambda-expr
+ (lambda-calculus-subst3
+  le4
+  (parse-lambda-expr '(lambda (y) (g y))) 'f))
 
-(unparse-lambda-expr (lambda-calculus-subst3 le4 (parse-lambda-expr '(lambda (z) (w z))) 'f) )
+(unparse-lambda-expr
+ (lambda-calculus-subst3
+  le4
+  (parse-lambda-expr '(lambda (z) (w z))) 'f) )
 
-(define le5 (parse-lambda-expr '(lambda (y z) (f z (lambda (p) (p z)) (m n)))))
+(define le5
+  (parse-lambda-expr '(lambda (y z) (f z (lambda (p) (p z)) (m n)))))
 (unparse-lambda-expr le5)
 (unparse-lambda-expr (parse-lambda-expr '(twelve eks)))
-(unparse-lambda-expr (lambda-calculus-subst le5 (parse-lambda-expr '(twelve eks)) 'z))
-(unparse-lambda-expr (lambda-calculus-subst3 le5 (parse-lambda-expr '(twelve eks)) 'z))
-(unparse-lambda-expr (lambda-calculus-subst3 le5 (parse-lambda-expr '(twelve eks)) 'm))
+(unparse-lambda-expr
+ (lambda-calculus-subst
+  le5
+  (parse-lambda-expr '(twelve eks)) 'z))
+(unparse-lambda-expr
+ (lambda-calculus-subst3
+  le5
+  (parse-lambda-expr '(twelve eks)) 'z))
+(unparse-lambda-expr
+ (lambda-calculus-subst3
+  le5
+  (parse-lambda-expr '(twelve eks)) 'm))
+
+(define subst-1
+  (cons (list 'a (parse-lambda-expr '(f x)))
+        (list
+         (list 'y (parse-lambda-expr '(lambda (n) (n f))))) ) )
