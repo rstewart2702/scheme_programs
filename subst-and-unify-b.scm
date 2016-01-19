@@ -963,7 +963,10 @@
            ((equal? first-id id) first-expr)
            (else (find-subst id (cdr subst-list)))) ) ) ) ) )
 
-;; (define subst-1 (cons (list 'a (parse-lambda-expr '(f x))) (list (list 'y (parse-lambda-expr '(lambda (n) (n f))))) ) )
+;; (define subst-1
+;;   (cons (list 'a (parse-lambda-expr '(f x)))
+;;         (list (list 'y (parse-lambda-expr '(lambda (n) (n f))))) ) )
+;;
 ;; (equal? (all-ids-all-exprs subst-1) '(n f n x f))
 
 (define lambda-calc-multi-subst
