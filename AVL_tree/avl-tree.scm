@@ -6,17 +6,39 @@
 ;; the "represent everything as a Lisp list" paradigm.
 ;;
 
+;; Proposed AVL tree grammar, in the spirit of the wonderful book,
+;;   Essentials of Programming Languages
+;; by Wand and Friedman.
+;;
+;; <tree> ::= ()
+;;          | ( <node> <tree> <tree> )
+;;
+;; <node> ::= ( <datum> <height> )
+;;
+;; <avl-tree> ::= ( <comp-fcn> <tree> )
+;;
+
+
 (define make-trec
   (lambda (k h) (list k h)) )
 
+(define is-empty?
+  (lambda (tree)
+    (null? tree) ))
+
 ; These are "notational convenience" functions, to ease the definition
 ; of the tree-manipulation functions.  I suppose these should be macros?
+; Also:  We assume that there is indeed a cadr or a caddr available,
+; i.e., the tree must not be empty.  This can be verified via the
+; is-empty? function.
+
 ; Pluck out the left child-tree:
 (define lchild
-  (lambda (ts) (cadr ts)))
+  (lambda (ts) (cadr ts)) )
 ; Pluck out the right child-tree:
 (define rchild
-  (lambda (ts) (caddr ts)))
+  (lambda (ts) (caddr ts)) )
+
 ; Pluck out the key from a tree:
 (define tkey
   (lambda (ts) (car (trec ts))))
@@ -40,9 +62,9 @@
 (define theight
   (lambda (ts)
     (cond
-     ((null? ts) -1)  ;; two alternatives:  an empty tree either has height 0 or -1...
-                      ;; the choice affects how "full" the resulting tree shall be.
-     (else (cadr (trec ts)))) ) )
+      ((is-empty? ts) -1) ;; two alternatives:  an empty tree either has height 0 or -1...
+                          ;; the choice affects how "full" the resulting tree shall be.
+      (else (cadr (trec ts)))) ) )
 
 ;
 ;; INTERNAL "CONSTRUCTION HELPER-FUNCTIONS," MAINLY FOR INTERNAL AND
@@ -86,6 +108,20 @@
 ;; Here's a nice set of string-tests:
 ;; (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (remove-from-tree (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (b-insert (mknode "Gaddis, C") "Stewart, R") "Selle, B") "Franklin, R") "Lin, Z") "Richardson, K") "McClinton, R") "Skaarsgard, A") "Skaarsgard, S") "Khan, Shah Rukh") "Horton, G") "Desmond, C") "Johnson, H") "DeHaviland, O") "Ford M") "Goyer, D") "Nolan, C") "Boyens, P") "Chartier, D") "Carton, S") "Khan, Shah Rukh") "Khan, SR") "Rai, A") "Bacchan, A") "Bacchan, B") "Chopra, P") "Smith, HK") "Schwartz, L") "Tifton, P") "Teegan, R") "Sorkin, A") "Eurton, J") "Fuller, J") "Blackstone, H") "Blaauw, G") "Dijkstra, EW") "VanDerMeer, G") "Martin, C") "Lipton, J") "Paltrow, G") "Pitt, B") "Jones, TP") "Jackson, A") "Washington, G") "Madison, J") "Adams, J") "Smith, A") "Hayek, FA") "Keynes, JM") "Adams, JQ") "Buchanan, J") "Bowers, R") "Boyer, D") "Hoover, H") "Simpson, H") "Zogby, G") "Akhtar, Z") "Akhtar, F") "Leach, N") "Brasswell, R") "Barna, G") "Meyer, B") "Dybvig, RK") "Friedman, D") "Wand, M") "MacQueen, D") "Peyton-Jones, S") "Brooks, F") "Darnay, C") "Holmes, S") "Watson, J") "Calvin, J") "Wirth, N") "Gries, D") "Poythress, V")
 
+;; This is a "generic binary tree height calculating function"
+;; which recursive computes the height of a tree by traversing
+;; its structure.
+;;
+;; It is different from the theight function, which is designed to
+;; reach in a fetch the value stored in the "height field" of an
+;; AVL-balanced tree.
+;; Also, this function is based on a slightly different definition
+;; of height from that which we used in our height-balanced AVL
+;; trees:  our AVL trees define an empty tree's height as -1, not 0.
+;; This was just to make some other things work out more conveniently
+;; in the AVL tree functions when deriving new AVL trees and calculating
+;; their height based on the heights of subtrees (some of which can be
+;; empty, right?)
 (define t-height
   (lambda (ts) 
     (let
@@ -162,7 +198,7 @@
 (define l-rotate
   (lambda (ts)
     (cond
-     ((null? ts) ts) ;; Corner-case of an empty tree, right?
+     ((is-empty? ts) ts) ;; Corner-case of an empty tree, right?
      (else           ;; We assume that there are two non-null children, right?
       (let*
           ;; Calculate some particular items from the tree rooted at ts:
@@ -199,7 +235,7 @@
 (define r-rotate
   (lambda (ts)
     (cond
-     ((null? ts) ts) ;; Corner-case of an empty tree, right?
+     ((is-empty? ts) ts) ;; Corner-case of an empty tree, right?
      (else
       (let*
           ((rc       (rchild ts))
@@ -238,7 +274,7 @@
 (define b-inorder
   (lambda (ts)
      (cond
-      ((null? ts) '())
+      ((is-empty? ts) '())
       (else
        (append
         (b-inorder (lchild ts))
@@ -251,7 +287,7 @@
         ((inorder-i
           (lambda (ts)
             (cond
-             ((null? ts) idf)
+             ((is-empty? ts) idf)
              (else
               (f-compose
                (f-compose
@@ -283,9 +319,9 @@
             (let*
                 ((root-func (lambda (h) (cons (tkey ts) h)))
                  (first-func
-                  (cond ((null? (lchild ts)) root-func)
+                  (cond ((is-empty? (lchild ts)) root-func)
                         (else (f-compose (inorder-i (lchild ts)) root-func) ))) )
-              (cond ((null? (rchild ts)) first-func)
+              (cond ((is-empty? (rchild ts)) first-func)
                     (else (f-compose first-func (inorder-i (rchild ts))) ) ) ) ) ) )
       ((inorder-i ts) '()) ) ) )
 
@@ -444,7 +480,7 @@
          (b-ins-inner
           (lambda (ti)
             (cond 
-             ((null? ti)
+             ((is-empty? ti)
               ;; If we're inserting into an "empty tree" then the result is
               ;; merely the result of creating a new tree/node from the itm.
               newtree)
@@ -572,7 +608,7 @@
              (else
               ;; The key in question, k, is in the root of tree ti.
               (cond
-               ((and (null? (rchild ti)) (null? (lchild ti))) '() )
+               ((and (is-empty? (rchild ti)) (is-empty? (lchild ti))) '() )
                (else
                 (let*
                     ;; Special case needed when there is not
@@ -582,15 +618,15 @@
                     ;; subtree, which can only be a leaf.
                     ((new-key
                       (cond
-                       ((null? (rchild ti)) (tkey (lchild ti)) )
+                       ((is-empty? (rchild ti)) (tkey (lchild ti)) )
                        (else (find-min (rchild ti)) ) ) )
                      (new-rc
                       (cond
-                       ((null? (rchild ti)) '() )
+                       ((is-empty? (rchild ti)) '() )
                        (else (internal-remove-from-tree (rchild ti) new-key kcomp)) ) )
                      (new-lc
                       (cond
-                       ((null? (rchild ti)) '())
+                       ((is-empty? (rchild ti)) '())
                        (else (lchild ti)) ) ) )
                   (rebalance
                    (mktree
@@ -841,12 +877,12 @@
          (lr-inner
           (lambda (ti)
             (cond
-             ((null? ti) idf)
+             ((is-empty? ti) idf)
              (else
               (let
                   ((left-res
                     (cond
-                     ((and (not (null? (lchild ti)))
+                     ((and (not (is-empty? (lchild ti)))
                            (or (kcomp x (tkey ti))
                                (kcomp y (tkey ti))))
                       (lr-inner (lchild ti)))
@@ -859,7 +895,7 @@
                      (else idf) ) )
                    (right-res
                     (cond
-                     ((and (not (null? (rchild ti)))
+                     ((and (not (is-empty? (rchild ti)))
                            (or (kcomp (tkey ti) x)
                                (kcomp (tkey ti) y)))
                       (lr-inner (rchild ti)) )
@@ -892,8 +928,8 @@
       (ct    ; "current tree"...?
        frst) ; "forest" of trees...?
     (cond
-     ((null? ct) frst)
-     ((null? (lchild ct))
+     ((is-empty? ct) frst)
+     ((is-empty? (lchild ct))
       (cons (list (trec ct) (rchild ct)) frst))
      (else
       (walk-down-left
@@ -989,12 +1025,12 @@
          (lr-inner
           (lambda (ti)
             (cond
-             ((null? ti) idf)
+             ((is-empty? ti) idf)
              (else
               (let*
                   ((left-res
                     (cond
-                     ((and (not (null? (lchild ti)))
+                     ((and (not (is-empty? (lchild ti)))
                            (or (kcomp x (tkey ti))
                                (kcomp y (tkey ti))))
                       (lr-inner (lchild ti)))
@@ -1007,7 +1043,7 @@
                      (else '()) ) )
                    (right-res
                     (cond
-                     ((and (not (null? (rchild ti)))
+                     ((and (not (is-empty? (rchild ti)))
                            (or (kcomp (tkey ti) x)
                                (kcomp (tkey ti) y)))
                       (lr-inner (rchild ti)) )
@@ -1036,12 +1072,12 @@
          (lr-inner
           (lambda (ti)
             (cond
-             ((null? ti) idf)
+             ((is-empty? ti) idf)
              (else
               (let
                   ((left-res
                     (cond
-                     ((and (not (null? (lchild ti)))
+                     ((and (not (is-empty? (lchild ti)))
                            (or (kcomp x (tkey ti))
                                (kcomp y (tkey ti))))
                       (lr-inner (lchild ti)))
@@ -1054,7 +1090,7 @@
                      (else identity) ) )
                    (right-res
                     (cond
-                     ((and (not (null? (rchild ti)))
+                     ((and (not (is-empty? (rchild ti)))
                            (or (kcomp (tkey ti) x)
                                (kcomp (tkey ti) y)))
                       (lr-inner (rchild ti)) )
@@ -1069,11 +1105,11 @@
          (lr-inner
           (lambda (ti)
             (cond
-             ((null? ti) '())
+             ((is-empty? ti) '())
              (else
               (append
                (cond
-                ((and (not (null? (lchild ti)))
+                ((and (not (is-empty? (lchild ti)))
                       (or (kcomp x (tkey ti))
                           (kcomp y (tkey ti)) ) )
                  (lr-inner (lchild ti)) )
@@ -1084,7 +1120,7 @@
                  (cons (tkey ti) '()) )
                 (else '()) )
                (cond
-                ((and (not (null? (rchild ti)))
+                ((and (not (is-empty? (rchild ti)))
                       (or  (kcomp (tkey ti) x)
                            (kcomp (tkey ti) y)) )
                  (lr-inner (rchild ti)) )
@@ -1100,7 +1136,7 @@
          (b-find-i
           (lambda (t)
             (cond
-             ((null? t) '())
+             ((is-empty? t) '())
              ((kcomp (tkey t) x) (b-find-i (rchild t) ))
              ((kcomp x (tkey t)) (b-find-i (lchild t) ))
              (else (tkey t)) ) ) ) )
@@ -1153,3 +1189,17 @@
 ;; gets up to 100000, so it seems.  But those are just ad hoc tests,
 ;; done off the cuff, using racket's time function...
 
+;;
+(define strs-tree-2 (new-tree "Stewart, Richard" string<?))
+(define strs-tree-1 (list string<? ()))
+
+
+
+;; New "set-union" function defined in terms of concatenation.
+;(define set-union
+;  (lambda (tl tr)
+;    (let*
+;	((int-tl (get-tree tl))
+;	 (int-tr (get-tree tr))
+;	 (kcomp (comparer tl)) )
+;      (
