@@ -710,22 +710,25 @@
   ;; Will rebalancing be necessary?  Strictly speaking, probably only
   ;; once, as is (probably) the case with insertion of a new key.
   (lambda (tl tr split-key)
-    (let*
-        ((height-eq (equal? (theight tl) (theight tr)) )
-         (height-gt (<      (theight tl) (theight tr)) ) ; right-hand tree is taller?
-         (new-key (cond ((or height-gt height-eq) split-key)
-                         (else (tkey tl)) ) )
-         (new-tr  (cond ((or height-gt height-eq) tr)
-                         (else (lconcat-key (rchild tl) tr split-key) ) ) )
-         (new-tl  (cond ((or height-gt height-eq) tl)
-                         (else (lchild tl))) ) )
-      (rebalance
-       (mktree
-        (make-trec
-         new-key
-         (+ 1 (max (theight new-tl) (theight new-tr))) )
-        new-tl
-        new-tr ) ) ) ) )
+    (cond
+      ((is-empty? rt) (b-insert lt split-key))
+      (else
+       (let*
+           ((height-eq (equal? (theight tl) (theight tr)) )
+            (height-gt (<      (theight tl) (theight tr)) ) ; right-hand tree is taller?
+            (new-key (cond ((or height-gt height-eq) split-key)
+                           (else (tkey tl)) ) )
+            (new-tr  (cond ((or height-gt height-eq) tr)
+                           (else (lconcat-key (rchild tl) tr split-key) ) ) )
+            (new-tl  (cond ((or height-gt height-eq) tl)
+                           (else (lchild tl))) ) )
+         (rebalance
+          (mktree
+           (make-trec
+            new-key
+            (+ 1 (max (theight new-tl) (theight new-tr))) )
+           new-tl
+           new-tr ) ) ) ) ) ) )
 ;
 ; [2013-04-15 Mon]
 ; Rebalancing needed only when the resulting tree grows in height by 1,
@@ -752,22 +755,25 @@
 ; 
 (define rconcat-key
   (lambda (tl tr split-key)
-    (let*
-        ((height-eq (equal? (theight tl) (theight tr)) )
-         (height-gt (>      (theight tl) (theight tr)) )
-         (new-key (cond ((or height-gt height-eq) split-key)
-                         (else (tkey tr)) ) )
-         (new-tr  (cond ((or height-gt height-eq) tr)
-                         (else (rchild tr)) ) )
-         (new-tl  (cond ((or height-gt height-eq) tl)
-                         (else (rconcat-key tl (lchild tr) split-key)))) )
-      (rebalance
-       (mktree
-        (make-trec
-         new-key
-         (+ 1 (max (theight new-tl) (theight new-tr))) )
-        new-tl
-        new-tr ) ) ) ) )
+    (cond
+      ((is-empty? lt) (b-insert rt split-key))
+      (else
+       (let*
+           ((height-eq (equal? (theight tl) (theight tr)) )
+            (height-gt (>      (theight tl) (theight tr)) )
+            (new-key (cond ((or height-gt height-eq) split-key)
+                           (else (tkey tr)) ) )
+            (new-tr  (cond ((or height-gt height-eq) tr)
+                           (else (rchild tr)) ) )
+            (new-tl  (cond ((or height-gt height-eq) tl)
+                           (else (rconcat-key tl (lchild tr) split-key)))) )
+         (rebalance
+          (mktree
+           (make-trec
+            new-key
+            (+ 1 (max (theight new-tl) (theight new-tr))) )
+           new-tl
+           new-tr ) ) ) ) ) ) )
 
 ;; lconcat and rconcat concatenate trees together and
 ;; are defined in terms of the lconcat-key and rconcat-key.
