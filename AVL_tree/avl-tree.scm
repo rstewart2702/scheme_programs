@@ -810,7 +810,7 @@
              ;; If the key falls to the left of the current root,
              ;; then split the left subtree by the key, and
              ;; concatenate together the right-hand side of the
-             ;; current root, the right-hand side of the split right
+             ;; current root, the right-hand side of the split left
              ;; subtree, and the splitting key.  This becomes
              ;; the right-hand side of the split, and the left-hand
              ;; side of the split is the left-hand tree that resulted
@@ -1196,6 +1196,16 @@
 
 
 ;; New "set-union" function defined in terms of concatenation.
+;; We shall have to change the b-split function to retrieve the
+;; sought-after element, if it is present in the tree-set being
+;; partitioned, so that b-split will provide some indication of
+;; whether or not the sought-after element was actually present
+;; in the set being partitioned or "split."
+;;
+;; Also, b-split must change to take into account the possibility
+;; that the sought-after element or datum does not appear in the
+;; tree-set.
+;;
 ;(define set-union
 ;  (lambda (tl tr)
 ;    (let*
