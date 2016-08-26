@@ -1253,10 +1253,6 @@
       (letrec
           ((set-union-i
             (lambda (tleft tright)
-              (display tleft)
-              (display "\n")
-              (display tright)
-              (display "\n\n")
               (cond
                 ((is-empty? tleft) tright)
                 ((is-empty? tright) tleft)
@@ -1265,8 +1261,7 @@
                      ((trpk (tkey tright))
                       (presult (set-partition tleft trpk))
                       (pl (car presult))
-                      (pr (cond ((null? (cdr presult)) '() )
-                                (else                    (cadr presult)) ) )
+                      (pr (cdr presult))
                       (ul (set-union-i pl (lchild tright)))
                       (ur (set-union-i pr (rchild tright))) )
                    ;; the ul and ur are non-overlapping sets, yes?  So they must be concatenated back together, right?
