@@ -811,11 +811,11 @@
 ;; root node stranded by the splitting of a subtree can become
 ;; the root node when deriving a concatenation, which is how
 ;; those rconcat-key and lconcat-key functions are used.
-(define b-split
-  (lambda (t skey)
+
+(define b-split-curriable
+  (lambda (kcomp)
     (letrec
-        ((kcomp (comparer t))
-         (b-split-i
+        ((b-split-i
           (lambda (t kn)
             (cond
               ((is-empty? t) '(()))
@@ -855,6 +855,13 @@
                    (car sr)
                    (tkey t))
                   (cdr sr)                                   ) ) ) ) ) ) )
+      b-split-i) ) )
+
+(define b-split
+  (lambda (t skey)
+    (letrec
+        ((kcomp (comparer t))
+         (b-split-i (b-split-curriable kcomp) ) )
       (let
           ( (result (b-split-i (get-tree t) skey)) )
         (list
@@ -1235,3 +1242,51 @@
 ;	 (int-tr (get-tree tr))
 ;	 (kcomp (comparer tl)) )
 ;      (
+(define set-union
+  (lambda (tl tr)
+    (let*
+        ((kcomp         (comparer tl))
+         (int-tl        (get-tree tl))
+         (int-tr        (get-tree tr))
+         ;; this derives a partitioning function for us!
+         (set-partition (b-split-curriable kcomp)) )
+      (letrec
+          ((set-union-i
+            (lambda (tleft tright)
+              (display tleft)
+              (display "\n")
+              (display tright)
+              (display "\n\n")
+              (cond
+                ((is-empty? tleft) tright)
+                ((is-empty? tright) tleft)
+                (else ; both tree-sets are non-empty?
+                 (let*
+                     ((trpk (tkey tright))
+                      (presult (set-partition tleft trpk))
+                      (pl (car presult))
+                      (pr (cond ((null? (cdr presult)) '() )
+                                (else                    (cadr presult)) ) )
+                      (ul (set-union-i pl (lchild tright)))
+                      (ur (set-union-i pr (rchild tright))) )
+                   ;; the ul and ur are non-overlapping sets, yes?  So they must be concatenated back together, right?
+                   (cond
+                     ((<= (theight ul) (theight ur)) (rconcat-key ul ur trpk) )
+                     ((<  (theight ur) (theight ul)) (lconcat-key ul ur trpk) ) ) ) ) ) ) ) )
+        (set-union-i int-tl int-tr) ) ) ) ) 
+
+
+;(cond
+;        ((is-empty? tl) int-tr)
+;        ((is-empty? tr) int-tl)
+;        ;;
+;        (else ; both sets are non-empty?
+;         (let*
+;             ((pk            (tkey int-tr))
+;              (presult       (set-partition tl pk))
+;              (pl            (car presult))
+;              (pr            (cadr presult))
+;              (ul            (set-union pl (lchild pr)))
+;              (ur            (set-union pr (rchild pr
+;
+
