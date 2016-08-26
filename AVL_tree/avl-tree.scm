@@ -691,44 +691,56 @@
   ;; the height of the right-hand subtree is "small enough, but not too
   ;; small!"
   ;;
-  ;; Base case:  If the right-hand tree height is greater than or equal to
-  ;; the left-hand tree height, then their concatenation is the result
-  ;; of assembling a new tree with the split-key in the new root, and the
-  ;; left tree is the left-hand tree, and the right tree is the right-hand
-  ;; tree, which must be, at most, one level taller than the left-hand
-  ;; tree.
+  ;; Base Case:
+  ;; Both trees satisfy is-empty? predicate, so the only thing to do
+  ;; is create a new tree with the split-key as the root.
+  ;; When both trees satisfy the is-empty? predicate, they have equal
+  ;; height as well.  The result will be the derivation of a tree of
+  ;; height 0 with empty left and right subtrees.
   ;;
-  ;; Inductive case:  If the right-hand tree is shorter than the left-tree,
-  ;; then their concatenation is the result of assembling a new tree
-  ;; by using the root of the existing left-hand tree as the root,
-  ;; and the left-child of the present left-tree as the left subtree,
-  ;; and the result of the 
-  ;; (recursive) lconcat-key call on the right subtree of the left tree,
-  ;; the right tree, and the supplied splitting key (split-key),
-  ;; as the right subtree.
+  ;; N.B. this is not explicit in the code.  It just happens
+  ;; to be a consequence of the height tests performed by the code!
   ;;
-  ;; Will rebalancing be necessary?  Strictly speaking, probably only
-  ;; once, as is (probably) the case with insertion of a new key.
+  ;; Also, the two trees may be non-empty, but equal in height,
+  ;; or they only differ in height by 1 (which is also implicit
+  ;; in this situation...)  In this case, a balanced tree can be
+  ;; built of the left tree, the split-key, and the right tree.
+  ;;
+  ;; Induction:
+  ;; The left tree is taller than the right tree, so we need a new
+  ;; right-hand tree (called new-tr) by (recursively) calculating:
+  ;;   (lconcat-key (rchild tl) tr split-key)
+  ;; and the new left-hand tree (named new-tl) is:  (lchild tl)
+  ;; and the new key (named new-key) is:  (tkey tl).
+  ;;
+  ;; The recursive use of lconcat-key calculates the concatenation
+  ;; of a shorter left-hand tree (i.e., (rchild tl)) to the right-hand
+  ;; tree, named tr.  (The recursion is supposed to reduce the height
+  ;; differences between the two trees.)
+  ;;
+  ;; Calculating the rebalanced version of the tree is necessary
+  ;; because the tree calculated by the recursive call to lconcat-key
+  ;; can differ in height from (lchild tl) by more than 1.
+  ;;
+  ;; (Will rebalancing be necessary?  Strictly speaking, probably only
+  ;; once, as is (probably) the case with insertion of a new key.)
   (lambda (tl tr split-key)
-    (cond
-      ((is-empty? rt) (b-insert lt split-key))
-      (else
-       (let*
-           ((height-eq (equal? (theight tl) (theight tr)) )
-            (height-gt (<      (theight tl) (theight tr)) ) ; right-hand tree is taller?
-            (new-key (cond ((or height-gt height-eq) split-key)
-                           (else (tkey tl)) ) )
-            (new-tr  (cond ((or height-gt height-eq) tr)
-                           (else (lconcat-key (rchild tl) tr split-key) ) ) )
-            (new-tl  (cond ((or height-gt height-eq) tl)
-                           (else (lchild tl))) ) )
-         (rebalance
-          (mktree
-           (make-trec
-            new-key
-            (+ 1 (max (theight new-tl) (theight new-tr))) )
-           new-tl
-           new-tr ) ) ) ) ) ) )
+    (let*
+        ((height-eq (equal? (theight tl) (theight tr)) )
+         (height-gt (<      (theight tl) (theight tr)) ) ; right-hand tree is taller?
+         (new-key (cond ((or height-gt height-eq) split-key)
+                        (else (tkey tl)) ) )
+         (new-tr  (cond ((or height-gt height-eq) tr)
+                        (else (lconcat-key (rchild tl) tr split-key) ) ) )
+         (new-tl  (cond ((or height-gt height-eq) tl)
+                        (else (lchild tl))) ) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+        new-tl
+        new-tr ) ) ) ) )
 ;
 ; [2013-04-15 Mon]
 ; Rebalancing needed only when the resulting tree grows in height by 1,
@@ -755,25 +767,22 @@
 ; 
 (define rconcat-key
   (lambda (tl tr split-key)
-    (cond
-      ((is-empty? lt) (b-insert rt split-key))
-      (else
-       (let*
-           ((height-eq (equal? (theight tl) (theight tr)) )
-            (height-gt (>      (theight tl) (theight tr)) )
-            (new-key (cond ((or height-gt height-eq) split-key)
-                           (else (tkey tr)) ) )
-            (new-tr  (cond ((or height-gt height-eq) tr)
-                           (else (rchild tr)) ) )
-            (new-tl  (cond ((or height-gt height-eq) tl)
-                           (else (rconcat-key tl (lchild tr) split-key)))) )
-         (rebalance
-          (mktree
-           (make-trec
-            new-key
-            (+ 1 (max (theight new-tl) (theight new-tr))) )
-           new-tl
-           new-tr ) ) ) ) ) ) )
+    (let*
+        ((height-eq (equal? (theight tl) (theight tr)) )
+         (height-gt (>      (theight tl) (theight tr)) )
+         (new-key (cond ((or height-gt height-eq) split-key)
+                        (else (tkey tr)) ) )
+         (new-tr  (cond ((or height-gt height-eq) tr)
+                        (else (rchild tr)) ) )
+         (new-tl  (cond ((or height-gt height-eq) tl)
+                        (else (rconcat-key tl (lchild tr) split-key)))) )
+      (rebalance
+       (mktree
+        (make-trec
+         new-key
+         (+ 1 (max (theight new-tl) (theight new-tr))) )
+        new-tl
+        new-tr ) ) ) ) )
 
 ;; lconcat and rconcat concatenate trees together and
 ;; are defined in terms of the lconcat-key and rconcat-key.
@@ -809,36 +818,43 @@
          (b-split-i
           (lambda (t kn)
             (cond
-             ((equal? (tkey t) kn)
-              (cons
-               (lchild t)
-               (rchild t) ) )
-             ;; If the key falls to the left of the current root,
-             ;; then split the left subtree by the key, and
-             ;; concatenate together the right-hand side of the
-             ;; current root, the right-hand side of the split left
-             ;; subtree, and the splitting key.  This becomes
-             ;; the right-hand side of the split, and the left-hand
-             ;; side of the split is the left-hand tree that resulted
-             ;; from the split of the left-hand subtree.
-             ((kcomp kn (tkey t))
-              (let ((sr (b-split-i (lchild t) kn) ) )
-                (cons
-                 (car sr)
-                 (rconcat-key (cdr sr) (rchild t) (tkey t)) ) ) )
-             ;; If the key falls to the right of the current root,
-             ;; then split the right subtree by the key, and
-             ;; concatenate together the left-hand side of the
-             ;; current root, the left-hand side of the split right
-             ;; subtree, and the splitting key.  This becomes
-             ;; the left-hand side of the split, and the right-hand
-             ;; side of the split is the right-hand tree that resulted
-             ;; from the split of the right-hand subtree.
-             ((kcomp (tkey t) kn)
-              (let ((sr (b-split-i (rchild t) kn) ) )
-                (cons
-                 (lconcat-key (lchild t) (car sr) (tkey t))
-                 (cdr sr)                                   ) ) ) ) ) ) )
+              ((is-empty? t) '(()))
+              ((equal? (tkey t) kn)
+               (cons
+                (lchild t)
+                (rchild t) ) )
+              ;; If the key falls to the left of the current root,
+              ;; then split the left subtree by the key, and
+              ;; concatenate together the right-hand side of the
+              ;; current root, the right-hand side of the split left
+              ;; subtree, and the splitting key.  This becomes
+              ;; the right-hand side of the split, and the left-hand
+              ;; side of the split is the left-hand tree that resulted
+              ;; from the split of the left-hand subtree.
+              ((kcomp kn (tkey t))
+               (let ((sr (b-split-i (lchild t) kn) ) )
+                 (cons
+                  (car sr)
+                  (rconcat-key
+                   (cdr sr)
+                   (rchild t)
+                   (tkey t)) ) ) )
+              ;; If the key falls to the right of the current root,
+              ;; then split the right subtree by the key, and
+              ;; concatenate together the left-hand side of the
+              ;; current root, the left-hand side of the split right
+              ;; subtree, and the splitting key.  This becomes
+              ;; the left-hand side of the split, and the right-hand
+              ;; side of the split is the right-hand tree that resulted
+              ;; from the split of the right-hand subtree.
+              ((kcomp (tkey t) kn)
+               (let ( (sr (b-split-i (rchild t) kn) ) )
+                 (cons
+                  (lconcat-key
+                   (lchild t)
+                   (car sr)
+                   (tkey t))
+                  (cdr sr)                                   ) ) ) ) ) ) )
       (let
           ( (result (b-split-i (get-tree t) skey)) )
         (list
