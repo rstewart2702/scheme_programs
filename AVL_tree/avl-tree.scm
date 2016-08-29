@@ -818,11 +818,9 @@
         ((b-split-i
           (lambda (t kn)
             (cond
-              ((is-empty? t) '(()))
+              ((is-empty? t) (list '() '() '()))
               ((equal? (tkey t) kn)
-               (cons
-                (lchild t)
-                (rchild t) ) )
+               (list (lchild t) (rchild t) kn) )
               ;; If the key falls to the left of the current root,
               ;; then split the left subtree by the key, and
               ;; concatenate together the right-hand side of the
@@ -833,12 +831,10 @@
               ;; from the split of the left-hand subtree.
               ((kcomp kn (tkey t))
                (let ((sr (b-split-i (lchild t) kn) ) )
-                 (cons
-                  (car sr)
-                  (rconcat-key
-                   (cdr sr)
-                   (rchild t)
-                   (tkey t)) ) ) )
+                 (list
+                  (ptn-left-tree sr)
+                  (rconcat-key (ptn-right-tree sr) (rchild t) (tkey t))
+                  (ptn-key sr) ) ) )
               ;; If the key falls to the right of the current root,
               ;; then split the right subtree by the key, and
               ;; concatenate together the left-hand side of the
@@ -849,13 +845,25 @@
               ;; from the split of the right-hand subtree.
               ((kcomp (tkey t) kn)
                (let ( (sr (b-split-i (rchild t) kn) ) )
-                 (cons
-                  (lconcat-key
-                   (lchild t)
-                   (car sr)
-                   (tkey t))
-                  (cdr sr)                                   ) ) ) ) ) ) )
+                 (list
+                  (lconcat-key (lchild t) (ptn-right-tree sr) (tkey t) )
+                  (ptn-right-tree sr)
+                  (ptn-key sr) ) ) ) ) ) ) )
       b-split-i) ) )
+
+;; Utilities to retrieve the various parts of the result
+;; of a partitioning or "splitting."
+;; Assumption is that the three components will become the
+;; three elements of an ordinary list, for now:
+(define ptn-left-tree
+  (lambda (presult)
+    (car presult)))
+(define ptn-right-tree
+  (lambda (presult)
+    (cadr presult)) )
+(define ptn-key
+  (lambda (presult)
+    (caddr presult)))
 
 (define b-split
   (lambda (t skey)
@@ -1260,8 +1268,8 @@
                  (let*
                      ((trpk (tkey tright))
                       (presult (set-partition tleft trpk))
-                      (pl (car presult))
-                      (pr (cdr presult))
+                      (pl (ptn-left-tree presult))
+                      (pr (ptn-right-tree presult))
                       (ul (set-union-i pl (lchild tright)))
                       (ur (set-union-i pr (rchild tright))) )
                    ;; the ul and ur are non-overlapping sets, yes?  So they must be concatenated back together, right?
