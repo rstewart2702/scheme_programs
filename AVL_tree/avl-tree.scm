@@ -1299,21 +1299,30 @@
                       (presult (set-partition tleft trpk))
                       (pl (ptn-left-tree presult))
                       (pr (ptn-right-tree presult))
+                      (pk (ptn-key presult))
                       (il (set-intersection-i pl (lchild tright)) )
                       (ir (set-intersection-i pr (rchild tright)) ) )
                    ;; The il and ir must be concatenated back together:
+                   (display il)(display "\n")(display ir)(display "\n\n")
                    (cond
-                     ((is-empty? il) '())
-                     ((is-empty? ir) '())
-                     ((null? (ptn-key presult))
-                      (let ((split-key (find-min ir)))
-                        (cond
-                          ((<= (theight il) (theight ir)) (rconcat-key il (remove-from-tree ir split-key) split-key))
-                          ((<  (theight ir) (theight il)) (lconcat-key il (remove-from-tree ir split-key) split-key)) ) ) )
-                     (else
+                     ((not (null? pk))
                       (cond
-                        ((<= (theight il) (theight ir)) (lconcat-key il ir trpk))
-                        ((<  (theight il) (theight ir)) (rconcat-key il ir trpk)) ) ) ) ) ) ) ) ) )
+                        ((<= (theight il) (theight ir)) (lconcat-key il ir pk))
+                        ((<  (theight il) (theight ir)) (rconcat-key il ir pk)) ) )
+                     ;;
+                     (else ;; The "partitioning key" was not present in the partitioned set:
+                      (cond
+                       ((and (not (is-empty? il)) (not (is-empty? ir)) )
+                        (cond
+                          ((<= (theight il) (theight ir))
+                           (let ((sk (find-min ir)))
+                             (lconcat-key il (remove-from-tree ir sk) sk)) )
+                          ((<  (theight il) (theight ir))
+                           (let ((sk (find-min ir)))
+                             (rconcat-key il (remove-from-tree ir sk) sk)) ) ) )
+                       ((is-empty? il) ir)
+                       ((is-empty? ir) il)
+                       (else (display "SHOULDN'T HAPPEN!\n") ) ) ) ) ) ) ) ) ) )
         (set-intersection-i int-tl int-tr)) ) ) )
 
 
