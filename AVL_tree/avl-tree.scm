@@ -1278,6 +1278,44 @@
                      ((<  (theight ur) (theight ul)) (lconcat-key ul ur trpk) ) ) ) ) ) ) ) )
         (set-union-i int-tl int-tr) ) ) ) ) 
 
+(define set-intersection
+  (lambda (tl tr)
+    (let*
+        ((kcomp     (comparer tl))
+         (int-tl    (get-tree tl))
+         (int-tr    (get-tree tr))
+         (set-partition (b-split-curriable kcomp)) )
+      (letrec
+          ((set-intersection-i
+            (lambda (tleft tright)
+              (cond
+                ; Intersection of empty set with anything is the empty set!
+                ((is-empty? tleft) '())
+                ((is-empty? tright) '())
+                ; Otherwise, must deal with case of both sets not empty:
+                (else
+                 (let*
+                     ((trpk (tkey tright))
+                      (presult (set-partition tleft trpk))
+                      (pl (ptn-left-tree presult))
+                      (pr (ptn-right-tree presult))
+                      (il (set-intersection-i pl (lchild tright)) )
+                      (ir (set-intersection-i pr (rchild tright)) ) )
+                   ;; The il and ir must be concatenated back together:
+                   (cond
+                     ((is-empty? il) '())
+                     ((is-empty? ir) '())
+                     ((null? (ptn-key presult))
+                      (let ((split-key (find-min ir)))
+                        (cond
+                          ((<= (theight il) (theight ir)) (rconcat-key il (remove-from-tree ir split-key) split-key))
+                          ((<  (theight ir) (theight il)) (lconcat-key il (remove-from-tree ir split-key) split-key)) ) ) )
+                     (else
+                      (cond
+                        ((<= (theight il) (theight ir)) (lconcat-key il ir trpk))
+                        ((<  (theight il) (theight ir)) (rconcat-key il ir trpk)) ) ) ) ) ) ) ) ) )
+        (set-intersection-i int-tl int-tr)) ) ) )
+
 
 ;(cond
 ;        ((is-empty? tl) int-tr)
