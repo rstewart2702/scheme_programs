@@ -1278,16 +1278,14 @@
                      ((<  (theight ur) (theight ul)) (lconcat-key ul ur trpk) ) ) ) ) ) ) ) )
         (set-union-i int-tl int-tr) ) ) ) ) 
 
-(define set-intersection
-  (lambda (tl tr)
-    (let*
-        ((kcomp     (comparer tl))
-         (int-tl    (get-tree tl))
-         (int-tr    (get-tree tr))
-         (set-partition (b-split-curriable kcomp)) )
-      (letrec
-          ((set-intersection-i
+(define set-intersect-curriable
+  (lambda (kcomp)
+    (letrec
+        ((set-partition (b-split-curriable kcomp))
+         (set-intersection-i
             (lambda (tleft tright)
+              (display "tleft and tright:\n")
+              (display tleft)(display "\n\n")(display tright)(display "\n\n")
               (cond
                 ; Intersection of empty set with anything is the empty set!
                 ((is-empty? tleft) '())
@@ -1303,27 +1301,44 @@
                       (il (set-intersection-i pl (lchild tright)) )
                       (ir (set-intersection-i pr (rchild tright)) ) )
                    ;; The il and ir must be concatenated back together:
-                   (display il)(display "\n")(display ir)(display "\n\n")
+                   (display "il and ir, presult, trpk:\n")
+                   (display il)(display "\n")(display ir)(display "\n")
+                   (display presult)(display "\n")
+                   (display trpk)(display "\n")
+                   (display "\n\n")
                    (cond
                      ((not (null? pk))
                       (cond
-                        ((<= (theight il) (theight ir)) (lconcat-key il ir pk))
-                        ((<  (theight il) (theight ir)) (rconcat-key il ir pk)) ) )
+                        ((<= (theight il) (theight ir)) (rconcat-key il ir pk))
+                        ((<  (theight ir) (theight il)) (lconcat-key il ir pk)) ) )
                      ;;
                      (else ;; The "partitioning key" was not present in the partitioned set:
                       (cond
                        ((and (not (is-empty? il)) (not (is-empty? ir)) )
-                        (cond
-                          ((<= (theight il) (theight ir))
-                           (let ((sk (find-min ir)))
-                             (lconcat-key il (remove-from-tree ir sk) sk)) )
-                          ((<  (theight il) (theight ir))
-                           (let ((sk (find-min ir)))
-                             (rconcat-key il (remove-from-tree ir sk) sk)) ) ) )
+                        (let* ((sk (find-min ir))
+                               (rtree (remove-from-tree ir sk))
+                               (concat-fcn (if (<= (theight il) (theight ir)) rconcat-key lconcat-key)) )
+                          (concat-fcn il rtree sk) ) )
                        ((is-empty? il) ir)
                        ((is-empty? ir) il)
-                       (else (display "SHOULDN'T HAPPEN!\n") ) ) ) ) ) ) ) ) ) )
-        (set-intersection-i int-tl int-tr)) ) ) )
+                       (else (display "SHOULDN'T HAPPEN!\n") )
+                       ) ) ) ) ) ) ) ) )
+      set-intersection-i) ) )
+
+(define set-intersection
+  (lambda (tl tr)
+    (let*
+        ((kcomp     (comparer tl))
+         (int-tl    (get-tree tl))
+         (int-tr    (get-tree tr))
+         (set-intersect-i (set-intersect-curriable kcomp)) )
+      (set-intersect-i int-tl int-tr) ) ) )
+
+
+(define left-set
+  '(("Bowers, Richard" 3)
+ (("Bennett, Matthew" 2) (("Bailey, Tom" 1) (("Austen, Jane" 0) () ()) (("Barnett, Matthew" 0) () ())) (("Bessemer, Henry" 0) () ()))
+ (("Chisman, Kerry" 2) (("Casali, Roy" 1) (("Camp, Colleen" 0) () ()) ()) (("Clancy, Scot" 0) () ()))))
 
 
 ;(cond
