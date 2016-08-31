@@ -1284,8 +1284,6 @@
         ((set-partition (b-split-curriable kcomp))
          (set-intersection-i
             (lambda (tleft tright)
-;              (display "tleft and tright:\n")
-;              (display tleft)(display "\n\n")(display tright)(display "\n\n")
               (cond
                 ; Intersection of empty set with anything is the empty set!
                 ((is-empty? tleft) '())
@@ -1301,16 +1299,6 @@
                       (il (set-intersection-i pl (lchild tright)) )
                       (ir (set-intersection-i pr (rchild tright)) ) )
                    ;; The il and ir must be concatenated back together:
-;                   (display "recursively calculated intersection:\n")
-;                   (display "pl: ")(display pl)(display "\n\n")
-;                   (display "pr: ")(display pr)(display "\n\n")
-;                   (display "pk: ")(display pk)(display "\n\n")
-;                   (display "trpk: ")(display trpk)(display "\n\n")
-;                   (display "il and ir:\n")
-;                   (display il)(display "\n")(display ir)(display "\n")
-;                   (display presult)(display "\n")
-;                   (display trpk)(display "\n")
-;                   (display "\n\n")
                    (cond
                      ((not (null? pk))
                       (cond
@@ -1325,9 +1313,7 @@
                                (concat-fcn (if (<= (theight il) (theight ir)) rconcat-key lconcat-key)) )
                           (concat-fcn il rtree sk) ) )
                        ((is-empty? il) ir)
-                       ((is-empty? ir) il)
-;                       (else (display "SHOULDN'T HAPPEN!\n") )
-                       ) ) ) ) ) ) ) ) )
+                       ((is-empty? ir) il) ) ) ) ) ) ) ) ) )
       set-intersection-i) ) )
 
 
