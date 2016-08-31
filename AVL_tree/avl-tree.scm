@@ -846,7 +846,7 @@
               ((kcomp (tkey t) kn)
                (let ( (sr (b-split-i (rchild t) kn) ) )
                  (list
-                  (lconcat-key (lchild t) (ptn-right-tree sr) (tkey t) )
+                  (lconcat-key (lchild t) (ptn-left-tree sr) (tkey t) )
                   (ptn-right-tree sr)
                   (ptn-key sr) ) ) ) ) ) ) )
       b-split-i) ) )
@@ -1284,8 +1284,8 @@
         ((set-partition (b-split-curriable kcomp))
          (set-intersection-i
             (lambda (tleft tright)
-              (display "tleft and tright:\n")
-              (display tleft)(display "\n\n")(display tright)(display "\n\n")
+;              (display "tleft and tright:\n")
+;              (display tleft)(display "\n\n")(display tright)(display "\n\n")
               (cond
                 ; Intersection of empty set with anything is the empty set!
                 ((is-empty? tleft) '())
@@ -1301,11 +1301,16 @@
                       (il (set-intersection-i pl (lchild tright)) )
                       (ir (set-intersection-i pr (rchild tright)) ) )
                    ;; The il and ir must be concatenated back together:
-                   (display "il and ir, presult, trpk:\n")
-                   (display il)(display "\n")(display ir)(display "\n")
-                   (display presult)(display "\n")
-                   (display trpk)(display "\n")
-                   (display "\n\n")
+;                   (display "recursively calculated intersection:\n")
+;                   (display "pl: ")(display pl)(display "\n\n")
+;                   (display "pr: ")(display pr)(display "\n\n")
+;                   (display "pk: ")(display pk)(display "\n\n")
+;                   (display "trpk: ")(display trpk)(display "\n\n")
+;                   (display "il and ir:\n")
+;                   (display il)(display "\n")(display ir)(display "\n")
+;                   (display presult)(display "\n")
+;                   (display trpk)(display "\n")
+;                   (display "\n\n")
                    (cond
                      ((not (null? pk))
                       (cond
@@ -1316,14 +1321,15 @@
                       (cond
                        ((and (not (is-empty? il)) (not (is-empty? ir)) )
                         (let* ((sk (find-min ir))
-                               (rtree (remove-from-tree ir sk))
+                               (rtree (get-tree (remove-from-tree (tree-shell kcomp ir) sk)))
                                (concat-fcn (if (<= (theight il) (theight ir)) rconcat-key lconcat-key)) )
                           (concat-fcn il rtree sk) ) )
                        ((is-empty? il) ir)
                        ((is-empty? ir) il)
-                       (else (display "SHOULDN'T HAPPEN!\n") )
+;                       (else (display "SHOULDN'T HAPPEN!\n") )
                        ) ) ) ) ) ) ) ) )
       set-intersection-i) ) )
+
 
 (define set-intersection
   (lambda (tl tr)
