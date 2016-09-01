@@ -637,11 +637,18 @@
                     new-rc ) ) ) ) ) ) ) ) ) )
       (rft-inner ts) ) ) )
      
+(define remove-curriable
+  (lambda (kcomp)
+    (lambda (ts k) (internal-remove-from-tree ts k kcomp)) ) )
+
 (define remove-from-tree
   (lambda (tc k)
-    (tree-shell
-     (comparer tc)
-     (internal-remove-from-tree (get-tree tc) k (comparer tc)) ) ) )
+    (let
+        ((remove-func (remove-curriable (comparer tc)) )
+         (comp-func (comparer tc) ) )
+      (tree-shell
+       comp-func
+       (remove-func k comp-func) ) ) ) )
 
 
 (define del-test-350
@@ -873,8 +880,9 @@
       (let
           ( (result (b-split-i (get-tree t) skey)) )
         (list
-         (tree-shell (comparer t) (car result))
-         (tree-shell (comparer t) (cdr result)) ) ) )) )
+         (tree-shell (comparer t) (ptn-left-tree result))
+         (tree-shell (comparer t) (ptn-right-tree result))
+         (ptn-key result) ) ) )) )
 
 ;; This is a range-search operation:
 ;; it may not be particularly efficient,
@@ -1228,7 +1236,7 @@
 
 ;;
 (define strs-tree-2 (new-tree "Stewart, Richard" string<?))
-(define strs-tree-1 (list string<? ()))
+(define strs-tree-1 (list string<? '()))
 
 
 
@@ -1243,21 +1251,10 @@
 ;; that the sought-after element or datum does not appear in the
 ;; tree-set.
 ;;
-;(define set-union
-;  (lambda (tl tr)
-;    (let*
-;	((int-tl (get-tree tl))
-;	 (int-tr (get-tree tr))
-;	 (kcomp (comparer tl)) )
-;      (
-(define set-union
-  (lambda (tl tr)
-    (let*
-        ((kcomp         (comparer tl))
-         (int-tl        (get-tree tl))
-         (int-tr        (get-tree tr))
-         ;; this derives a partitioning function for us!
-         (set-partition (b-split-curriable kcomp)) )
+(define set-union-curriable
+  (lambda (kcomp)
+    (let
+        ((set-partition (b-split-curriable kcomp)))
       (letrec
           ((set-union-i
             (lambda (tleft tright)
@@ -1276,12 +1273,23 @@
                    (cond
                      ((<= (theight ul) (theight ur)) (rconcat-key ul ur trpk) )
                      ((<  (theight ur) (theight ul)) (lconcat-key ul ur trpk) ) ) ) ) ) ) ) )
-        (set-union-i int-tl int-tr) ) ) ) ) 
+        set-union-i ) ) ) )
+
+(define set-union
+  (lambda (tl tr)
+    (let*
+        ((kcomp         (comparer tl))
+         (int-tl        (get-tree tl))
+         (int-tr        (get-tree tr))
+         ;; this derives a partitioning function for us!
+         (set-union-i   (set-union-curriable kcomp) ) )
+      (tree-shell kcomp (set-union-i int-tl int-tr) ) ) ) )
 
 (define set-intersect-curriable
   (lambda (kcomp)
     (letrec
         ((set-partition (b-split-curriable kcomp))
+         (tree-remove   (remove-curriable kcomp))
          (set-intersection-i
             (lambda (tleft tright)
               (cond
@@ -1309,7 +1317,7 @@
                       (cond
                        ((and (not (is-empty? il)) (not (is-empty? ir)) )
                         (let* ((sk (find-min ir))
-                               (rtree (get-tree (remove-from-tree (tree-shell kcomp ir) sk)))
+                               (rtree (tree-remove ir sk))
                                (concat-fcn (if (<= (theight il) (theight ir)) rconcat-key lconcat-key)) )
                           (concat-fcn il rtree sk) ) )
                        ((is-empty? il) ir)
@@ -1324,7 +1332,48 @@
          (int-tl    (get-tree tl))
          (int-tr    (get-tree tr))
          (set-intersect-i (set-intersect-curriable kcomp)) )
-      (set-intersect-i int-tl int-tr) ) ) )
+      (tree-shell kcomp (set-intersect-i int-tl int-tr) ) ) ) )
+
+(define set-diff-curriable
+  (lambda (kcomp)
+    (letrec
+        ((set-partition (b-split-curriable kcomp))
+         (tree-remove (remove-curriable kcomp))
+         (set-diff-i
+          (lambda (tleft tright)
+            (cond
+             ((is-empty? tleft) '())
+             ((is-empty? tright) tleft)
+             (else
+              (let*
+                  ((trpk (tkey tright))
+                   (presult (set-partition tleft trpk))
+                   (pl (ptn-left-tree presult))
+                   (pr (ptn-right-tree presult))
+                   (pk (ptn-key presult))
+                   (dl (set-diff-i pl (lchild tright)) )
+                   (dr (set-diff-i pr (rchild tright)) ) )
+                (cond
+                 ;; In set-difference, we don't wish to keep that partitioning-key,
+                 ;; even though it may be present in the left-hand set.
+                 ((is-empty? dl) dr)
+                 ((is-empty? dr) dl)
+                 (else ;; both dl and dl are not empty:
+                  (let* ((sk (find-min dr))
+                         (rtree (tree-remove dr sk))
+                         (concat-fcn (if (<= (theight dl) (theight dr)) rconcat-key lconcat-key)) )
+                    (concat-fcn dl rtree sk) ) ) ) ) ) ) ) ) )
+      set-diff-i) ) )
+
+(define set-difference
+  (lambda (tl tr)
+    (let*
+        ((kcomp (comparer tl))
+         (int-tl (get-tree tl))
+         (int-tr (get-tree tr))
+         (set-diff-i (set-diff-curriable kcomp)) )
+      (tree-shell kcomp (set-diff-i int-tl int-tr) ) ) ) )
+                    
 
 
 (define left-set
@@ -1347,3 +1396,86 @@
 ;              (ur            (set-union pr (rchild pr
 ;
 
+;; TESTS:
+;; (b-inorder-b (get-tree (set-difference strs-tree-2 (set-difference strs-tree-2 (b-insert (b-insert (list string<? '()) "Wikstrom, Cornelius") "Scharansky, Natan")))))
+;; '("Scharansky, Natan" "Wikstrom, Cornelius")
+;;
+;; (set-union (tree-shell string<? left-set) (b-insert '(string<? ()) "Zygote"))
+;; '(#<procedure:string<?>
+;;   (("Bowers, Richard" 3)
+;;    (("Bennett, Matthew" 2)
+;;     (("Bailey, Tom" 1)
+;;      (("Austen, Jane" 0) () ())
+;;      (("Barnett, Matthew" 0) () ()))
+;;     (("Bessemer, Henry" 0) () ()))
+;;    (("Casali, Roy" 2)
+;;     (("Camp, Colleen" 0) () ())
+;;     (("Clancy, Scot" 1) (("Chisman, Kerry" 0) () ()) (("Zygote" 0) () ())))))
+
+;; (set-union (set-union (tree-shell string<? left-set ) (b-insert '(string<? ()) "Zygote" )) strs-tree-2)
+;; '(#<procedure:string<?>
+;;   (("Holmes, Katie" 7)
+;;    (("Cotillard, Marion" 5)
+;;     (("Bowers, Richard" 3)
+;;      (("Bailey, Tom" 2)
+;;       (("Austen, Jane" 0) () ())
+;;       (("Bennett, Matthew" 1)
+;;        (("Barnett, Matthew" 0) () ())
+;;        (("Bessemer, Henry" 0) () ())))
+;;      (("Chisman, Kerry" 2)
+;;       (("Camp, Colleen" 1) () (("Casali, Roy" 0) () ()))
+;;       (("Clancy, Scot" 0) () ())))
+;;     (("Franklin, Regena" 4)
+;;      (("Dobbs, Richard" 3)
+;;       (("Desmond, Charles" 2)
+;;        (("De Vargas, Juan" 1) () (("DeRama, Peter" 0) () ()))
+;;        (("Dijkstra, Edsger" 0) () ()))
+;;       (("Flannery, William" 2)
+;;        (("Evers, David" 1)
+;;         (("Ellison, Harlan" 0) () ())
+;;         (("Ferrell, Will" 0) () ()))
+;;        (("Ford, Matthew" 1) () (("Frame, John" 0) () ()))))
+;;      (("Gavrilovich, Pavel" 2)
+;;       (("Gaddis, Calvin" 0) () ())
+;;       (("Harkness, Jack" 1) (("Hardy, Tom" 0) () ()) ()))))
+;;    (("Nolan, Christopher" 6)
+;;     (("Martin, Chris" 4)
+;;      (("Khan, Shah Rukh" 3)
+;;       (("Jackson, Peter" 1)
+;;        (("Horton, Michael" 0) () ())
+;;        (("Jones, Kerri" 0) () ()))
+;;       (("Lewis, Clive" 2)
+;;        (("Kuyper, Abraham" 1)
+;;         (("Knuth, Donald" 0) () ())
+;;         (("Leach, Nora" 0) () ()))
+;;        (("Lewis, Holly" 1) () (("Lin, Zoe" 0) () ()))))
+;;      (("McClinton, Rebecca" 2)
+;;       (("May, Parker" 1)
+;;        (("Marvinson, Gus" 0) () ())
+;;        (("McBride, Martina" 0) () ()))
+;;       (("Mott, Nathan" 1)
+;;        (("Mohler, R. Albert" 0) () ())
+;;        (("Murphy, Elaine" 0) () ()))))
+;;     (("Rai, Aishwarya" 5)
+;;      (("Pachelbel, Johann" 3)
+;;       (("Oliphant, Scott" 2)
+;;        (("O'Reilly, Dennis" 1) () (("Okasaki, Chris" 0) () ()))
+;;        (("Orange, John" 0) () ()))
+;;       (("Plantinga, Alvin" 2)
+;;        (("Pilkington, Paul" 1) () (("Piller, Michael" 0) () ()))
+;;        (("Poe, Edgar Alan" 1) () (("Poythress, Vern Sheridan" 0) () ()))))
+;;      (("Stewart, Richard" 4)
+;;       (("Scharansky, Natan" 3)
+;;        (("Richardson, Keith" 1) () (("Roshan, Hrithik" 0) () ()))
+;;        (("Skarsgaard, Stellan" 2)
+;;         (("Selle, Bron" 1) () (("Skarsgaard, Alexander" 0) () ()))
+;;         (("Smith, Markus" 1) () (("Steele, Guy L" 0) () ()))))
+;;       (("Wikstrom, Cornelius" 3)
+;;        (("Tolkien, John Ronald Reuel" 2)
+;;         (("Teukolsky, Saul" 1)
+;;          (("Tarjan, Robert E." 0) () ())
+;;          (("Thomas, Emma" 0) () ()))
+;;         (("Walther, C.F.W." 1) (("Van Til, Cornelius" 0) () ()) ()))
+;;        (("Wunder, Ron" 2)
+;;         (("Wilson, Warren" 0) () ())
+;;         (("Zygote" 1) (("Yee, Soo Jean" 0) () ()) ()))))))))
