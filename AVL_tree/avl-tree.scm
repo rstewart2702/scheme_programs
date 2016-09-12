@@ -1239,7 +1239,6 @@
 (define strs-tree-1 (list string<? '()))
 
 
-
 ;; New "set-union" function defined in terms of concatenation.
 ;; We shall have to change the b-split function to retrieve the
 ;; sought-after element, if it is present in the tree-set being
@@ -1315,13 +1314,13 @@
                      ;;
                      (else ;; The "partitioning key" was not present in the partitioned set:
                       (cond
-                       ((and (not (is-empty? il)) (not (is-empty? ir)) )
+                       ((is-empty? il) ir)
+                       ((is-empty? ir) il)
+                       (else ;; (and (not (is-empty? il)) (not (is-empty? ir)) )
                         (let* ((sk (find-min ir))
                                (rtree (tree-remove ir sk))
                                (concat-fcn (if (<= (theight il) (theight ir)) rconcat-key lconcat-key)) )
-                          (concat-fcn il rtree sk) ) )
-                       ((is-empty? il) ir)
-                       ((is-empty? ir) il) ) ) ) ) ) ) ) ) )
+                          (concat-fcn il rtree sk) ) ) )  ) ) ) ) ) ) ) )
       set-intersection-i) ) )
 
 
