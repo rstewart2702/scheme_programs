@@ -1239,6 +1239,67 @@
 (define strs-tree-1 (list string<? '()))
 
 
+;; Functions for AVL-tree zippers:
+(define make-zipper
+  (lambda (t)
+    (list '() t '()) ) )
+
+(define zipper-lforest
+  (lambda (z)
+    (car z) ) )
+
+(define zipper-rforest
+  (lambda (z)
+    (car (cdr (cdr z))) ) )
+
+(define zipper-current
+  (lambda (z)
+    (car (cdr z)) ) )
+
+(define move-to-recent-rturn
+  (lambda (lforest curr rforest)
+    (cond
+     ((equal? (tkey curr) (tkey (rchild (car lforest))) )
+      (list (cdr lforest) (car lforest) rforest)         )
+      ; Haven't come to most recent rturn yet, so must
+      ; retrace the interstitial lturns first:
+     (else
+      (list lforest (car rforest) (cdr rforest)) ) ) ) )
+
+(define move-to-recent-lturn
+  (lambda (lforest curr rforest)
+    (cond
+     ((equal? (tkey curr) (tkey (lchild (car rforest))) )
+      (list lforest (car rforest) (cdr rforest))         )
+     ; Haven't come to the most recent lturn yet, so must
+     ; retrace all of the interstitial rturns first:
+     (else
+      (list (cdr lforest) (car lforest) rforest) ) ) ) )
+
+(define zip-inorder-pred
+  (lambda (z)
+    (let
+        ((lforest (zipper-lforest z))
+         (curr    (zipper-current z))
+         (rforest (zipper-rforest z)))
+      (cond
+       ((null? (lchild curr))
+        (move-to-recent-rturn lforest curr rforest))
+       (else (list lforest (lchild curr) (cons curr rforest) ) ) ) ) ) )
+
+(define zip-inorder-succ
+  (lambda (z)
+    (let
+        ((lforest (zipper-lforest z))
+         (curr    (zipper-current z))
+         (rforest (zipper-rforest z)))
+      (cond
+       ((null? (rchild curr))
+        (move-to-recent-lturn lforest curr rforest))
+       (else (list (cons curr lforest) (rchild curr) rforest) ) ) ) ) )
+
+
+
 ;; New "set-union" function defined in terms of concatenation.
 ;; We shall have to change the b-split function to retrieve the
 ;; sought-after element, if it is present in the tree-set being
