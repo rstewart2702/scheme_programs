@@ -1264,7 +1264,7 @@
       ; Haven't come to most recent rturn yet, so must
       ; retrace the interstitial lturns first:
      (else
-      (list lforest (car rforest) (cdr rforest)) ) ) ) )
+      (move-to-recent-rturn lforest (car rforest) (cdr rforest)) ) ) ) )
 
 (define move-to-recent-lturn
   (lambda (lforest curr rforest)
@@ -1274,7 +1274,7 @@
      ; Haven't come to the most recent lturn yet, so must
      ; retrace all of the interstitial rturns first:
      (else
-      (list (cdr lforest) (car lforest) rforest) ) ) ) )
+      (move-to-recent-lturn (cdr lforest) (car lforest) rforest) ) ) ) )
 
 (define zip-inorder-pred
   (lambda (z)
