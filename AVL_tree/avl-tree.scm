@@ -1259,6 +1259,8 @@
 (define move-to-recent-rturn
   (lambda (lforest curr rforest)
     (cond
+     ((null? lforest) ; i.e., there's no "most recent right turn"
+      (list lforest curr rforest))  ; Simply the zipper, as there's no predecessor.
      ((equal? (tkey curr) (tkey (rchild (car lforest))) )
       (list (cdr lforest) (car lforest) rforest)         )
       ; Haven't come to most recent rturn yet, so must
@@ -1269,12 +1271,22 @@
 (define move-to-recent-lturn
   (lambda (lforest curr rforest)
     (cond
+     ((null? rforest) ; i.e., there's no "most recent left turn"
+      (list lforest curr rforest)) ; Simply the zipper, as there's no predecessor.
      ((equal? (tkey curr) (tkey (lchild (car rforest))) )
       (list lforest (car rforest) (cdr rforest))         )
      ; Haven't come to the most recent lturn yet, so must
      ; retrace all of the interstitial rturns first:
      (else
       (move-to-recent-lturn (cdr lforest) (car lforest) rforest) ) ) ) )
+
+(define move-to-last
+  (lambda (lforest curr rforest)
+    (cond
+     ((null? (rchild curr))
+      (list lforest curr rforest))
+     (else
+      (move-to-last (cons curr lforest) (rchild curr) rforest)) ) ))
 
 (define zip-inorder-pred
   (lambda (z)
@@ -1285,7 +1297,16 @@
       (cond
        ((null? (lchild curr))
         (move-to-recent-rturn lforest curr rforest))
-       (else (list lforest (lchild curr) (cons curr rforest) ) ) ) ) ) )
+       (else
+        (move-to-last lforest (lchild curr) (cons curr rforest)) ) ) ) ) )
+
+(define move-to-first
+  (lambda (lforest curr rforest)
+    (cond
+     ((null? (lchild curr))
+      (list lforest curr rforest) )
+     (else
+      (move-to-first lforest (lchild curr) (cons curr rforest))) ) ) )
 
 (define zip-inorder-succ
   (lambda (z)
@@ -1296,7 +1317,8 @@
       (cond
        ((null? (rchild curr))
         (move-to-recent-lturn lforest curr rforest))
-       (else (list (cons curr lforest) (rchild curr) rforest) ) ) ) ) )
+       (else
+        (move-to-first (cons curr lforest) (rchild curr) rforest) ) ) ) ) )
 
 
 
