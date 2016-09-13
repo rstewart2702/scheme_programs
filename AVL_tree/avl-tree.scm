@@ -1320,6 +1320,36 @@
        (else
         (move-to-first (cons curr lforest) (rchild curr) rforest) ) ) ) ) )
 
+(define zip-to-root
+  (lambda (z)
+    (let
+        ((lforest (zipper-lforest z))
+         (curr    (zipper-current z))
+         (rforest (zipper-rforest z)))
+      (cond
+       ((and (null? lforest) (null? rforest))
+        (list lforest curr rforest))
+       ((equal? (tkey curr) (tkey (lchild rforest)))
+        (zip-to-root lforest (car rforest) (cdr rforest)))
+       ((equal? (tkey curr) (tkey (rchild lforest)))
+        (zip-to-root (cdr lforest) (car lforest) rforest)) ) ) ) )
+
+(define zip-find-curriable
+  (lambda (kcomp z k)
+    (let
+        ((zipped-up (zip-to-root z)))
+      (letrec
+          ((zip-find-i
+            (lambda (zi)
+              (let*
+                  ((lforest (zipper-lforest zi))
+                   (curr    (zipper-current zi))
+                   (rforest (zipper-rforest zi)))
+                (cond
+                 ((equal? k (tkey (curr))) zi)
+                 ((kcomp (tkey curr) k)
+                  (zip-find-i 
+
 ;; Split in terms of a zipper:
 ;; Given a zipper, assemble the left-side and right-side of a
 ;; split at the "focus" of the zipper (the root node of the
