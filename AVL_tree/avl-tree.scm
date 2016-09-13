@@ -1320,6 +1320,47 @@
        (else
         (move-to-first (cons curr lforest) (rchild curr) rforest) ) ) ) ) )
 
+;; Split in terms of a zipper:
+;; Given a zipper, assemble the left-side and right-side of a
+;; split at the "focus" of the zipper (the root node of the
+;; zipper's current focus)
+(define lconcat-unzipped
+  (lambda (forest result-tree)
+    (cond
+     ((null? forest) result-tree)
+     (else
+      (let
+          ((concat-result
+            (lconcat-key
+             (lchild (car forest))
+             result-tree
+             (tkey (car forest)) ) ) )
+        (lconcat-unzipped (cdr forest) concat-result) ) ) ) ) )
+
+(define rconcat-unzipped
+  (lambda (forest result-tree)
+    (cond
+     ((null? forest) result-tree)
+     (else
+      (let
+          ((concat-result
+            (rconcat-key
+             result-tree
+             (rchild (car forest))
+             (tkey (car forest)) ) ) )
+        (rconcat-unzipped (cdr forest) concat-result) ) ) ) ) )
+             
+
+(define split-at-zipper
+  (lambda (z)
+    (let*
+        ((lforest (zipper-lforest z))
+         (curr    (zipper-current z))
+         (rforest (zipper-rforest z))
+         (l-side (lconcat-unzipped lforest (lchild curr)) )
+         (r-side (rconcat-unzipped rforest (rchild curr)) ) )
+      (list l-side r-side (tkey curr)) ) ) )
+
 
 
 ;; New "set-union" function defined in terms of concatenation.
