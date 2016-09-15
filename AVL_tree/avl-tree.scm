@@ -1268,6 +1268,17 @@
      (else
       (move-to-recent-rturn lforest (car rforest) (cdr rforest)) ) ) ) )
 
+(define ascend-to-recent-rturn
+  (lambda (z)
+    (let ((lf (zipper-lforest z))
+          (c  (zipper-current z))
+          (rf (zipper-rforest z))
+          (ar (zipper-ascend z)) )
+      (cond
+       ((null? lf) z)
+       ((equal? (tkey c) (rchild (zipper-current ar))) ar)
+       (else (ascend-to-recent-rturn ar) ) ) ) ) )
+
 (define move-to-recent-lturn
   (lambda (lforest curr rforest)
     (cond
@@ -1279,6 +1290,18 @@
      ; retrace all of the interstitial rturns first:
      (else
       (move-to-recent-lturn (cdr lforest) (car lforest) rforest) ) ) ) )
+
+(define ascend-to-recent-lturn
+  (lambda (z)
+    (let ((lf (zipper-lforest z))
+          (c  (zipper-current z))
+          (rf (zipper-rforest z))
+          (ar (zipper-ascend z)) )
+      (cond
+       ((null? rf) z)
+       ((equal? (tkey c) (lchild (zipper-current ar))) ar)
+       (else (ascend-to-recent-lturn ar)) ) ) ) )        
+
 
 (define move-to-last
   (lambda (lforest curr rforest)
@@ -1334,21 +1357,80 @@
        ((equal? (tkey curr) (tkey (rchild lforest)))
         (zip-to-root (cdr lforest) (car lforest) rforest)) ) ) ) )
 
+(define zip-to-root-ascend
+  (lambda (z)
+    (let ((lforest (zipper-lforest z))
+          (curr    (zipper-current z))
+          (rforest (zipper-rforest z)))
+      (cond
+       ((and (null? lforest) (null? rforest)) z)
+       (else (zip-to-root-ascend (zipper-ascend z)) ) ) ) ) )
+       
+
+
 (define zip-find-curriable
   (lambda (kcomp z k)
-    (let
-        ((zipped-up (zip-to-root z)))
+    (let*
+        ((zipped-up (zip-to-root-ascend z))
+         (lf (zipper-lforest zipped-up))
+         (c  (zipper-current zipped-up))
+         (rf (zipper-rforest zipped-up)) )
       (letrec
           ((zip-find-i
-            (lambda (zi)
-              (let*
-                  ((lforest (zipper-lforest zi))
-                   (curr    (zipper-current zi))
-                   (rforest (zipper-rforest zi)))
-                (cond
-                 ((equal? k (tkey (curr))) zi)
-                 ((kcomp (tkey curr) k)
-                  (zip-find-i 
+            (lambda (lhf fcs rhf)
+              (cond
+               ((equal? k (tkey fcs)) (list lhf fcs rhf))
+               ((and (kcomp (tkey fcs) k) (not (null? (rchild fcs))) )
+                (zip-find-i (cons fcs lhf) (rchild fcs) rhf) )
+               ((and (kcomp k (tkey fcs)) (not (null? (lchild fcs))) )
+                (zip-find-i lhf (lchild fcs) (cons fcs rhf)) )
+               (else (list lhf fcs rhf)) ) ) ) )
+        (zip-find-i lf c rf)) ) ) )
+
+(define zip-find-curried
+  (lambda (kcomp)
+    (lambda (z k) (zip-find-curriable kcomp z k)) ) )
+
+(define zipper-ascend
+  (lambda (z)
+    (let ((lf (zipper-lforest z))
+          (c  (zipper-current z))
+          (rf (zipper-rforest z)) )
+      (cond
+       ((and (not (null? lf))
+             (equal? (tkey c) (tkey (rchild (car lf)))) )
+        (list
+         (cdr lf)
+         (list (trec (car lf)) (lchild (car lf)) c)
+         rf))
+       ((and (not (null? rf))
+             (equal? (tkey c) (tkey (lchild (car rf)))) )
+        (list
+         lf
+         (list (trec (car rf)) c (rchild (car rf)))
+         (cdr rf)) )
+       (else z)) ) ) )
+
+; not much difference between this and the above!
+(define zipper-ascend-ro
+  (lambda (z)
+    (let ((lf (zipper-lforest z))
+          (c  (zipper-current z))
+          (rf (zipper-rforest z)) )
+      (cond
+       ((and (not (null? lf))
+             (equal? (tkey c) (tkey (rchild (car lf)))) )
+        (list
+         (cdr lf)
+         (car lf)
+         rf) )
+       ((and (not (null? rf))
+             (equal? (tkey c) (tkey (lchild (car rf)))) )
+        (list
+         lf
+         (car rf)
+         (cdr rf)) )
+       (else z) ) ) ) )
 
 ;; Split in terms of a zipper:
 ;; Given a zipper, assemble the left-side and right-side of a
